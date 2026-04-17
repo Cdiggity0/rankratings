@@ -658,18 +658,6 @@
       text-align: right;
     }
 
-    .sheet-notes-preview {
-      margin-top: 6px;
-      padding: 6px 8px;
-      border-radius: 4px;
-      background: #101010;
-      border: 1px solid #444;
-      font-size: 13px;
-      color: #dddddd;
-      max-height: 80px;
-      overflow: hidden;
-    }
-
     .more-info-cta {
       margin-top: auto;
       display: flex;
@@ -860,17 +848,9 @@
       <!-- Quick bull note -->
       <div class="rider-meta-panel">
         <div class="rider-meta-row">
-          <span class="rider-meta-label">Bull note</span>
+          <span class="rider-meta-label">Bull</span>
           <span class="rider-meta-value" id="bullNoteLine">—</span>
         </div>
-      </div>
-
-      <!-- Short preview -->
-      <div class="notes-label" style="margin-top:8px;">
-        <span>Sheet notes preview</span>
-      </div>
-      <div class="sheet-notes-preview" id="notesPreview">
-        No additional info for this ride.
       </div>
 
       <!-- Big More Info button at bottom -->
@@ -998,7 +978,6 @@
   const riderEarningsLineEl = document.getElementById("riderEarningsLine");
   const riderPotentialLineEl = document.getElementById("riderPotentialLine");
   const bullNoteLineEl = document.getElementById("bullNoteLine");
-  const notesPreviewEl = document.getElementById("notesPreview");
 
   function slugifyRiderName(name) {
     if (!name) return "";
@@ -1086,7 +1065,6 @@
       alert("No rows found in the sheet.");
       return;
     }
-
     rides.sort((a, b) => {
       const n1 = Number(a[COLS.number]) || 0;
       const n2 = Number(b[COLS.number]) || 0;
@@ -1299,86 +1277,83 @@
     return tmp.textContent || tmp.innerText || "";
   }
 
-function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
-  const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
-  const text = stripHtml(cleanHtml);
+  // NEW: strict "first wins" rider fields + UTB/ALL bull stats combination
+  function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
+    const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
+    const text = stripHtml(cleanHtml);
 
-  const tmp = document.createElement("div");
-  tmp.innerHTML = cleanHtml;
+    const tmp = document.createElement("div");
+    tmp.innerHTML = cleanHtml;
 
-  const ps = Array.from(tmp.querySelectorAll("p"));
+    const ps = Array.from(tmp.querySelectorAll("p"));
 
-  let career;
-  let season;
-  let points;
-  let earnings;
-  let potential;
+    let career;
+    let season;
+    let points;
+    let earnings;
+    let potential;
 
-  // we will capture first UTB line and first ALL line
-  let utbLine;
-  let allLine;
+    let utbLine;
+    let allLine;
 
-  ps.forEach(p => {
-    const raw = stripHtml(p.innerHTML).trim();
-    if (!raw) return;
+    ps.forEach(p => {
+      const raw = stripHtml(p.innerHTML).trim();
+      if (!raw) return;
 
-    const lower = raw.toLowerCase();
+      const lower = raw.toLowerCase();
 
-    // RIDER FIELDS: first match wins
-    if (!career && lower.startsWith("career")) {
-      career = raw.replace(/^\s*career[:\-]?\s*/i, "");
-      return;
+      // RIDER FIELDS: first match wins
+      if (!career && lower.startsWith("career")) {
+        career = raw.replace(/^\s*career[:\-]?\s*/i, "");
+        return;
+      }
+      if (!season && (lower.startsWith("season") || lower.startsWith("rank"))) {
+        season = raw.replace(/^\s*(season|rank)[:\-]?\s*/i, "");
+        return;
+      }
+      if (!points && lower.startsWith("points")) {
+        points = raw.replace(/^\s*points[:\-]?\s*/i, "");
+        return;
+      }
+      if (!earnings && lower.startsWith("earnings")) {
+        earnings = raw.replace(/^\s*earnings[:\-]?\s*/i, "");
+        return;
+      }
+      if (!potential && lower.startsWith("potential")) {
+        potential = raw.replace(/^\s*potential[:\-]?\s*/i, "");
+        return;
+      }
+
+      // BULL STATS: first UTB line, first ALL line
+      if (!utbLine && lower.includes("utb")) {
+        utbLine = raw;
+        return;
+      }
+      if (!allLine && (lower.includes("all levels") || lower.includes("all outs"))) {
+        allLine = raw;
+        return;
+      }
+    });
+
+    let bullStats = "";
+    if (utbLine && allLine) {
+      bullStats = utbLine + " | " + allLine;
+    } else if (utbLine) {
+      bullStats = utbLine;
+    } else if (allLine) {
+      bullStats = allLine;
     }
-    if (!season && (lower.startsWith("season") || lower.startsWith("rank"))) {
-      season = raw.replace(/^\s*(season|rank)[:\-]?\s*/i, "");
-      return;
-    }
-    if (!points && lower.startsWith("points")) {
-      points = raw.replace(/^\s*points[:\-]?\s*/i, "");
-      return;
-    }
-    if (!earnings && lower.startsWith("earnings")) {
-      earnings = raw.replace(/^\s*earnings[:\-]?\s*/i, "");
-      return;
-    }
-    if (!potential && lower.startsWith("potential")) {
-      potential = raw.replace(/^\s*potential[:\-]?\s*/i, "");
-      return;
-    }
 
-    // BULL FIELDS: first UTB line and first ALL line
-    if (!utbLine && lower.includes("utb")) {
-      utbLine = raw;
-      return;
-    }
-    if (!allLine && (lower.includes("all levels") || lower.includes("all outs"))) {
-      allLine = raw;
-      return;
-    }
-  });
-
-  // Build a compact bullStats string from the pieces we found
-  let bullStats = "";
-  if (utbLine && allLine) {
-    bullStats = `${utbLine} | ${allLine}`;
-  } else if (utbLine) {
-    bullStats = utbLine;
-  } else if (allLine) {
-    bullStats = allLine;
-  } else {
-    bullStats = "";
+    return {
+      career,
+      season,
+      points,
+      earnings,
+      potential,
+      bullStats,
+      plainText: text
+    };
   }
-
-  return {
-    career,
-    season,
-    points,
-    earnings,
-    potential,
-    bullStats,
-    plainText: text
-  };
-}
 
   function renderCurrentRide() {
     if (!rides.length) {
@@ -1594,11 +1569,6 @@ function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
       riderEarningsLineEl.textContent = meta.earnings || "—";
       riderPotentialLineEl.textContent = meta.potential || "—";
       bullNoteLineEl.textContent = meta.bullStats || "—";
-
-      const preview = meta.plainText.length > 260
-        ? meta.plainText.slice(0, 257) + "…"
-        : meta.plainText;
-      notesPreviewEl.textContent = preview || "No additional info for this ride.";
     } else {
       moreInfoBody.textContent = "No additional info for this ride.";
       riderCareerLineEl.textContent = "—";
@@ -1607,7 +1577,6 @@ function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
       riderEarningsLineEl.textContent = "—";
       riderPotentialLineEl.textContent = "—";
       bullNoteLineEl.textContent = "—";
-      notesPreviewEl.textContent = "No additional info for this ride.";
     }
 
     const handInfo = {
