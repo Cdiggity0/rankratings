@@ -1299,43 +1299,70 @@
     return tmp.textContent || tmp.innerText || "";
   }
 
-  function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
-    const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
-    const text = stripHtml(cleanHtml);
+function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
+  const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
+  const text = stripHtml(cleanHtml);
 
-    const tmp = document.createElement("div");
-    tmp.innerHTML = cleanHtml;
-    const ps = Array.from(tmp.querySelectorAll("p"));
+  const tmp = document.createElement("div");
+  tmp.innerHTML = cleanHtml;
 
-    let career = "—";
-    let season = "—";
-    let points = "—";
-    let earnings = "—";
-    let potential = "—";
-    let bullNote = "—";
+  const ps = Array.from(tmp.querySelectorAll("p"));
 
-    ps.forEach(p => {
-      const raw = stripHtml(p.innerHTML).trim();
-      const lower = raw.toLowerCase();
-      if (!raw) return;
+  let career;
+  let season;
+  let points;
+  let earnings;
+  let potential;
+  let bullStats; // compact bull stats line only
 
-      if (lower.startsWith("career")) {
-        career = raw.replace(/^career\s*:?\s*/i, "");
-      } else if (lower.startsWith("season") || lower.startsWith("rank")) {
-        season = raw.replace(/^(season\s*:?|rank\s*)/i, "");
-      } else if (lower.startsWith("points")) {
-        points = raw.replace(/^points\s*:?\s*/i, "");
-      } else if (lower.startsWith("earnings")) {
-        earnings = raw.replace(/^earnings\s*:?\s*/i, "");
-      } else if (lower.startsWith("potential")) {
-        potential = raw.replace(/^potential\s*:?\s*/i, "");
-      } else if (lower.includes("no previous matchups") || lower.startsWith("bull")) {
-        bullNote = raw;
-      }
-    });
+  ps.forEach(p => {
+    const raw = stripHtml(p.innerHTML).trim();
+    if (!raw) return;
 
-    return { career, season, points, earnings, potential, bullNote, plainText: text };
-  }
+    const lower = raw.toLowerCase();
+
+    // RIDER FIELDS: first match wins
+    if (!career && lower.startsWith("career")) {
+      career = raw.replace(/^\s*career[:\-]?\s*/i, "");
+      return;
+    }
+    if (!season && (lower.startsWith("season") || lower.startsWith("rank"))) {
+      season = raw.replace(/^\s*(season|rank)[:\-]?\s*/i, "");
+      return;
+    }
+    if (!points && lower.startsWith("points")) {
+      points = raw.replace(/^\s*points[:\-]?\s*/i, "");
+      return;
+    }
+    if (!earnings && lower.startsWith("earnings")) {
+      earnings = raw.replace(/^\s*earnings[:\-]?\s*/i, "");
+      return;
+    }
+    if (!potential && lower.startsWith("potential")) {
+      potential = raw.replace(/^\s*potential[:\-]?\s*/i, "");
+      return;
+    }
+
+    // BULL STATS: first UTB / ALL-style line wins
+    if (
+      !bullStats &&
+      (lower.includes("utb") || lower.includes("all levels") || lower.includes("all outs"))
+    ) {
+      bullStats = raw;
+      return;
+    }
+  });
+
+  return {
+    career,
+    season,
+    points,
+    earnings,
+    potential,
+    bullStats,
+    plainText: text
+  };
+}
 
   function renderCurrentRide() {
     if (!rides.length) {
