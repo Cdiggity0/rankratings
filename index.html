@@ -1313,7 +1313,10 @@ function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
   let points;
   let earnings;
   let potential;
-  let bullStats; // compact bull stats line only
+
+  // we will capture first UTB line and first ALL line
+  let utbLine;
+  let allLine;
 
   ps.forEach(p => {
     const raw = stripHtml(p.innerHTML).trim();
@@ -1343,15 +1346,28 @@ function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
       return;
     }
 
-    // BULL STATS: first UTB / ALL-style line wins
-    if (
-      !bullStats &&
-      (lower.includes("utb") || lower.includes("all levels") || lower.includes("all outs"))
-    ) {
-      bullStats = raw;
+    // BULL FIELDS: first UTB line and first ALL line
+    if (!utbLine && lower.includes("utb")) {
+      utbLine = raw;
+      return;
+    }
+    if (!allLine && (lower.includes("all levels") || lower.includes("all outs"))) {
+      allLine = raw;
       return;
     }
   });
+
+  // Build a compact bullStats string from the pieces we found
+  let bullStats = "";
+  if (utbLine && allLine) {
+    bullStats = `${utbLine} | ${allLine}`;
+  } else if (utbLine) {
+    bullStats = utbLine;
+  } else if (allLine) {
+    bullStats = allLine;
+  } else {
+    bullStats = "";
+  }
 
   return {
     career,
@@ -1577,7 +1593,7 @@ function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
       riderPointsLineEl.textContent = meta.points || "—";
       riderEarningsLineEl.textContent = meta.earnings || "—";
       riderPotentialLineEl.textContent = meta.potential || "—";
-      bullNoteLineEl.textContent = meta.bullNote || "—";
+      bullNoteLineEl.textContent = meta.bullStats || "—";
 
       const preview = meta.plainText.length > 260
         ? meta.plainText.slice(0, 257) + "…"
