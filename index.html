@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>RankRatings PBR Matchup Board</title>
   <style>
-    /* --- your existing styles from paste.txt, unchanged --- */
     :root {
       --pbr-red: #c8102e;
       --pbr-dark: #111111;
@@ -418,14 +417,29 @@
       margin-bottom: 4px;
     }
 
-    .score-field input {
+    .score-pill {
       width: 100%;
-      padding: 6px 8px;
-      border-radius: 4px;
-      border: 1px solid #444;
+      padding: 8px 10px;
+      border-radius: 6px;
       background: #101010;
-      color: #f5f5f5;
-      font-size: 13px;
+      border: 1px solid #444;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .score-pill.good {
+      border-color: #00b050;
+      color: #a9f5c5;
+    }
+
+    .score-pill.bad {
+      border-color: #ff0000;
+      color: #ff8080;
+    }
+
+    .score-pill.neutral {
+      border-color: #a2a2a2;
+      color: #dddddd;
     }
 
     .notes-label {
@@ -437,18 +451,6 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 80px;
-      resize: vertical;
-      padding: 6px 8px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background: #101010;
-      color: #f5f5f5;
-      font-size: 13px;
     }
 
     .nav-row {
@@ -625,6 +627,44 @@
     .modal-body strong {
       font-weight: 700;
     }
+
+    .rider-meta-panel {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #101010;
+      border: 1px solid #303030;
+    }
+
+    .rider-meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .rider-meta-label {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+    }
+
+    .rider-meta-value {
+      color: #f3f3f3;
+      text-align: right;
+    }
+
+    .sheet-notes-preview {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      background: #101010;
+      border: 1px solid #444;
+      font-size: 13px;
+      color: #dddddd;
+      max-height: 80px;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -746,36 +786,53 @@
       </div>
     </section>
 
-    <!-- Right: Scores & Notes -->
+    <!-- Right: Rider Performance -->
     <section class="card">
       <div class="card-header">
-        <div class="card-title">Scores & Notes</div>
+        <div class="card-title">Rider performance</div>
       </div>
 
       <div class="scores-grid">
         <div class="score-field">
-          <label for="bullScoreInput">Bull score</label>
-          <input type="number" step="0.25" id="bullScoreInput" />
+          <label>Result</label>
+          <div class="score-pill neutral" id="resultPill">—</div>
         </div>
         <div class="score-field">
-          <label for="riderScoreInput">Rider score</label>
-          <input type="number" step="0.25" id="riderScoreInput" />
+          <label>Total score</label>
+          <div class="score-pill" id="totalScoreDisplay">—</div>
         </div>
         <div class="score-field">
-          <label for="totalScoreInput">Total</label>
-          <input type="number" step="0.25" id="totalScoreInput" />
+          <label>Split (R / B)</label>
+          <div class="score-pill" id="splitScoreDisplay">—</div>
+        </div>
+      </div>
+
+      <div class="rider-meta-panel">
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Career</span>
+          <span class="rider-meta-value" id="riderCareerLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Season</span>
+          <span class="rider-meta-value" id="riderSeasonLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Potential</span>
+          <span class="rider-meta-value" id="riderPotentialLine">—</span>
         </div>
       </div>
 
       <div class="notes-label">
-        <span>Your notes (for this ride)</span>
+        <span>Sheet notes</span>
         <button id="moreInfoBtn" class="btn secondary"
           style="font-size:11px;padding:4px 10px;">
           More info
         </button>
       </div>
-      <textarea id="notesInput"
-        placeholder="Line choices, feel, rankness, injuries, anything you want…"></textarea>
+
+      <div class="sheet-notes-preview" id="notesPreview">
+        No additional info for this ride.
+      </div>
 
       <div id="moreInfoModal" class="modal-backdrop" style="display:none;">
         <div class="modal-card">
@@ -810,7 +867,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-  // === Core state (same as your original, minus file input/sheet dropdown) ===
   let workbook = null;
   let currentSheetName = null;
   let rides = [];
@@ -868,10 +924,6 @@
   const prevBtn = document.getElementById("prevBtn");
   const nextBtn = document.getElementById("nextBtn");
 
-  const bullScoreInput = document.getElementById("bullScoreInput");
-  const riderScoreInput = document.getElementById("riderScoreInput");
-  const totalScoreInput = document.getElementById("totalScoreInput");
-  const notesInput = document.getElementById("notesInput");
   const riderPhotoHeaderEl = document.getElementById("riderPhotoHeader");
   const riderPhotoHeaderLabelEl = document.getElementById("riderPhotoHeaderLabel");
 
@@ -888,6 +940,14 @@
   const moreInfoTitle = document.getElementById("moreInfoTitle");
   const moreInfoBody = document.getElementById("moreInfoBody");
   const moreInfoClose = document.getElementById("moreInfoClose");
+
+  const resultPillEl = document.getElementById("resultPill");
+  const totalScoreDisplayEl = document.getElementById("totalScoreDisplay");
+  const splitScoreDisplayEl = document.getElementById("splitScoreDisplay");
+  const riderCareerLineEl = document.getElementById("riderCareerLine");
+  const riderSeasonLineEl = document.getElementById("riderSeasonLine");
+  const riderPotentialLineEl = document.getElementById("riderPotentialLine");
+  const notesPreviewEl = document.getElementById("notesPreview");
 
   function slugifyRiderName(name) {
     if (!name) return "";
@@ -910,7 +970,6 @@
     return buildRiderPhotoUrl(name);
   }
 
-  // === NEW: load workbook from /data/pbr_matchups_full.xlsx ===
   async function loadDefaultWorkbook() {
     try {
       dataStatusEl.textContent = "Loading latest sheet…";
@@ -925,7 +984,7 @@
       if (!sheetNames.length) {
         throw new Error("No sheets found");
       }
-      currentSheetName = sheetNames[0]; // always first sheet
+      currentSheetName = sheetNames[0];
       loadSheet(currentSheetName);
 
       dataStatusEl.textContent = "Live sheet: " + currentSheetName;
@@ -1021,7 +1080,6 @@
       }
 
       seg.addEventListener("click", () => {
-        persistCurrentScores();
         currentIndex = idx;
         renderCurrentRide();
       });
@@ -1175,6 +1233,43 @@
       }
       if (bullDirIconEl.src) bullDirIconEl.style.display = "block";
     }
+  }
+
+  function normalizeHtmlSpaces(html) {
+    return html
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function stripHtml(html) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+
+  function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
+    const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
+    const text = stripHtml(cleanHtml);
+
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    let career = "—";
+    let season = "—";
+    let potential = "—";
+
+    lines.forEach(line => {
+      const lower = line.toLowerCase();
+      if (lower.startsWith("career")) {
+        career = line.replace(/^career\s*[:\-]?\s*/i, "");
+      } else if (lower.startsWith("season")) {
+        season = line.replace(/^season\s*[:\-]?\s*/i, "");
+      } else if (lower.startsWith("potential")) {
+        potential = line.replace(/^potential\s*[:\-]?\s*/i, "");
+      }
+    });
+
+    return { career, season, potential, plainText: text };
   }
 
   function renderCurrentRide() {
@@ -1345,11 +1440,60 @@
       advPercentValue
     );
 
-    const sheetNote = (row[COLS.sheetNotes] || "").toString().trim();
-    if (sheetNote) {
-      moreInfoBody.innerHTML = sheetNote;
+    const sheetBullScore = row[COLS.bullScore];
+    const sheetRiderScore = row[COLS.riderScore];
+    const sheetTotalScore = row[COLS.totalScore];
+
+    let bull = parseFloat(sheetBullScore);
+    let rider = parseFloat(sheetRiderScore);
+    let totalScore = parseFloat(sheetTotalScore);
+
+    if (!isNaN(bull) && !isNaN(rider) && isNaN(totalScore)) {
+      totalScore = bull + rider;
+    }
+
+    if (!isNaN(totalScore)) {
+      totalScoreDisplayEl.textContent = totalScore.toFixed(2);
+    } else {
+      totalScoreDisplayEl.textContent = "—";
+    }
+
+    if (!isNaN(bull) && !isNaN(rider)) {
+      splitScoreDisplayEl.textContent = rider.toFixed(2) + " / " + bull.toFixed(2);
+    } else {
+      splitScoreDisplayEl.textContent = "—";
+    }
+
+    resultPillEl.className = "score-pill neutral";
+    if (!isNaN(totalScore) && totalScore > 0) {
+      resultPillEl.textContent = "Qualified ride";
+      resultPillEl.classList.add("good");
+    } else if (isNaN(rider) || rider === 0) {
+      resultPillEl.textContent = "Buckoff / no score";
+      resultPillEl.classList.add("bad");
+    } else {
+      resultPillEl.textContent = "Unknown result";
+    }
+
+    const sheetNoteHtml = (row[COLS.sheetNotes] || "").toString().trim();
+    if (sheetNoteHtml) {
+      moreInfoBody.innerHTML = sheetNoteHtml;
+
+      const meta = parseRiderMetaFromSheetNotes(sheetNoteHtml);
+      riderCareerLineEl.textContent = meta.career || "—";
+      riderSeasonLineEl.textContent = meta.season || "—";
+      riderPotentialLineEl.textContent = meta.potential || "—";
+
+      const preview = meta.plainText.length > 280
+        ? meta.plainText.slice(0, 277) + "…"
+        : meta.plainText;
+      notesPreviewEl.textContent = preview || "No additional info for this ride.";
     } else {
       moreInfoBody.textContent = "No additional info for this ride.";
+      riderCareerLineEl.textContent = "—";
+      riderSeasonLineEl.textContent = "—";
+      riderPotentialLineEl.textContent = "—";
+      notesPreviewEl.textContent = "No additional info for this ride.";
     }
 
     const handInfo = {
@@ -1362,49 +1506,7 @@
     const matchupUrl = buildMatchupLink(parsed.id, riderName);
     matchupLinkEl.href = matchupUrl || "#";
 
-    const key = getRideKey(row);
-    const saved = scoreData[key] || {};
-
-    const sheetBullScore = row[COLS.bullScore];
-    const sheetRiderScore = row[COLS.riderScore];
-    const sheetTotalScore = row[COLS.totalScore];
-    const sheetPostNotes = row[COLS.postRideNotes];
-
-    bullScoreInput.value =
-      saved.bullScore ?? (sheetBullScore !== undefined ? sheetBullScore : "");
-    riderScoreInput.value =
-      saved.riderScore ?? (sheetRiderScore !== undefined ? sheetRiderScore : "");
-    totalScoreInput.value =
-      saved.total ?? (sheetTotalScore !== undefined ? sheetTotalScore : "");
-    notesInput.value =
-      saved.notes ?? (sheetPostNotes !== undefined ? sheetPostNotes : "");
-
     updateProgressHighlight();
-  }
-
-  function persistCurrentScores() {
-    if (!rides.length) return;
-    const row = getCurrentRide();
-    const key = getRideKey(row);
-    scoreData[key] = {
-      bullScore: bullScoreInput.value,
-      riderScore: riderScoreInput.value,
-      total: totalScoreInput.value,
-      notes: notesInput.value
-    };
-  }
-
-  function recomputeTotal() {
-    const bull = parseFloat(bullScoreInput.value);
-    const rider = parseFloat(riderScoreInput.value);
-    if (!isNaN(bull) && !isNaN(rider)) {
-      totalScoreInput.value = (bull + rider).toFixed(2);
-    } else {
-      totalScoreInput.value = "";
-    }
-
-    persistCurrentScores();
-    recalcLists();
   }
 
   function recalcLists() {
@@ -1438,9 +1540,11 @@
         <span class="list-meta">${pct}%</span>
       `;
       btn.addEventListener("click", () => {
-        persistCurrentScores();
-        currentIndex = idx;
-        renderCurrentRide();
+        const realIndex = rides.indexOf(row);
+        if (realIndex >= 0) {
+          currentIndex = realIndex;
+          renderCurrentRide();
+        }
       });
       topRideProbListEl.appendChild(btn);
     });
@@ -1459,7 +1563,6 @@
       const { row, idx, val } = item;
       const fullBullName = row[COLS.bullName] || "";
       const parsed = parseBullName(fullBullName);
-      const bullUrl = buildProBullStatsLink(parsed.id);
       const btn = document.createElement("button");
       btn.className = "list-item-btn";
       btn.innerHTML = `
@@ -1467,7 +1570,11 @@
         <span class="list-meta">${val.toFixed(1)}</span>
       `;
       btn.addEventListener("click", () => {
-        if (bullUrl && bullUrl !== "#") window.open(bullUrl, "_blank");
+        const realIndex = rides.indexOf(row);
+        if (realIndex >= 0) {
+          currentIndex = realIndex;
+          renderCurrentRide();
+        }
       });
       topBullPowerListEl.appendChild(btn);
     });
@@ -1476,32 +1583,49 @@
     for (const row of rides) {
       const key = getRideKey(row);
       const s = scoreData[key];
-      if (!s) continue;
-      const riderScore = parseFloat(s.riderScore);
-      if (isNaN(riderScore)) continue;
-      const bullScore = parseFloat(s.bullScore);
-      let total = parseFloat(s.total);
-      if (isNaN(total) && !isNaN(bullScore)) total = bullScore + riderScore;
-      qualified.push({ row, s, total: isNaN(total) ? 0 : total });
+
+      const bullScoreCell = row[COLS.bullScore];
+      const riderScoreCell = row[COLS.riderScore];
+      const totalCell = row[COLS.totalScore];
+
+      let bull = parseFloat(s && s.bullScore !== undefined && s.bullScore !== "" ? s.bullScore : bullScoreCell);
+      let rider = parseFloat(s && s.riderScore !== undefined && s.riderScore !== "" ? s.riderScore : riderScoreCell);
+      let total = parseFloat(s && s.total !== undefined && s.total !== "" ? s.total : totalCell);
+
+      if (!isNaN(bull) && !isNaN(rider) && isNaN(total)) {
+        total = bull + rider;
+      }
+
+      if (isNaN(total) || total <= 50) continue;
+
+      qualified.push({ row, total });
     }
+
     qualified.sort((a,b) => b.total - a.total);
 
     qualifiedRidesListEl.innerHTML = "";
-    qualified.slice(0, 20).forEach(item => {
+    qualified.forEach((item, index) => {
       const { row, total } = item;
       const fullBullName = row[COLS.bullName] || "";
       const parsed = parseBullName(fullBullName);
       const riderName = row[COLS.rider] || "";
+
+      const placeNumber = index + 1;
+      const placeSuffix =
+        placeNumber % 10 === 1 && placeNumber % 100 !== 11 ? "st" :
+        placeNumber % 10 === 2 && placeNumber % 100 !== 12 ? "nd" :
+        placeNumber % 10 === 3 && placeNumber % 100 !== 13 ? "rd" : "th";
+      const placeLabel = placeNumber + placeSuffix;
+
       const btn = document.createElement("button");
       btn.className = "list-item-btn";
       btn.innerHTML = `
-        <span class="list-main">${riderName} on ${parsed.name || fullBullName}</span>
+        <span class="list-main">${placeLabel}: ${riderName} on ${parsed.name || fullBullName}</span>
         <span class="list-meta">${total.toFixed(2)}</span>
       `;
       btn.addEventListener("click", () => {
         const idx = rides.indexOf(row);
         if (idx >= 0) {
-          persistCurrentScores();
           currentIndex = idx;
           renderCurrentRide();
         }
@@ -1511,20 +1635,18 @@
 
     if (!qualified.length) {
       qualifiedRidesListEl.innerHTML =
-        '<div class="list-meta">No qualified rides yet.</div>';
+        '<div class="list-meta">No qualified rides yet (50+ total).</div>';
     }
   }
 
   prevBtn.addEventListener("click", () => {
     if (!rides.length) return;
-    persistCurrentScores();
     currentIndex = (currentIndex - 1 + rides.length) % rides.length;
     renderCurrentRide();
   });
 
   nextBtn.addEventListener("click", () => {
     if (!rides.length) return;
-    persistCurrentScores();
     currentIndex = (currentIndex + 1) % rides.length;
     renderCurrentRide();
   });
@@ -1538,13 +1660,6 @@
       e.preventDefault();
       nextBtn.click();
     }
-  });
-
-  bullScoreInput.addEventListener("input", recomputeTotal);
-  riderScoreInput.addEventListener("input", recomputeTotal);
-  notesInput.addEventListener("input", () => {
-    persistCurrentScores();
-    recalcLists();
   });
 
   function openMoreInfoModal() {
@@ -1584,11 +1699,9 @@
   });
 
   reloadBtn.addEventListener("click", () => {
-    // simple manual reload of the hosted file during an event
     loadDefaultWorkbook();
   });
 
-  // Kick off initial load
   loadDefaultWorkbook();
 </script>
 </body>
