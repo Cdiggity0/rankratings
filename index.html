@@ -194,6 +194,9 @@
       padding: 16px 18px;
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
       border: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
     .card-header {
@@ -425,6 +428,7 @@
       border: 1px solid #444;
       font-size: 14px;
       font-weight: 600;
+      text-align: center;
     }
 
     .score-pill.good {
@@ -665,6 +669,19 @@
       max-height: 80px;
       overflow: hidden;
     }
+
+    .more-info-cta {
+      margin-top: auto;
+      display: flex;
+      justify-content: center;
+      padding-top: 10px;
+    }
+
+    .more-info-cta .btn {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -792,21 +809,31 @@
         <div class="card-title">Rider performance</div>
       </div>
 
+      <!-- Three key score pills -->
       <div class="scores-grid">
         <div class="score-field">
-          <label>Result</label>
-          <div class="score-pill neutral" id="resultPill">—</div>
+          <label>Rider score</label>
+          <div class="score-pill" id="riderScoreDisplay">—</div>
         </div>
         <div class="score-field">
-          <label>Total score</label>
+          <label>Bull score</label>
+          <div class="score-pill" id="bullScoreDisplay">—</div>
+        </div>
+        <div class="score-field">
+          <label>Total</label>
           <div class="score-pill" id="totalScoreDisplay">—</div>
-        </div>
-        <div class="score-field">
-          <label>Split (R / B)</label>
-          <div class="score-pill" id="splitScoreDisplay">—</div>
         </div>
       </div>
 
+      <!-- Overall result -->
+      <div class="rider-meta-panel">
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Result</span>
+          <span class="rider-meta-value" id="resultPill">—</span>
+        </div>
+      </div>
+
+      <!-- Parsed rider info -->
       <div class="rider-meta-panel">
         <div class="rider-meta-row">
           <span class="rider-meta-label">Career</span>
@@ -817,21 +844,40 @@
           <span class="rider-meta-value" id="riderSeasonLine">—</span>
         </div>
         <div class="rider-meta-row">
+          <span class="rider-meta-label">Points</span>
+          <span class="rider-meta-value" id="riderPointsLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Earnings</span>
+          <span class="rider-meta-value" id="riderEarningsLine">—</span>
+        </div>
+        <div class="rider-meta-row">
           <span class="rider-meta-label">Potential</span>
           <span class="rider-meta-value" id="riderPotentialLine">—</span>
         </div>
       </div>
 
-      <div class="notes-label">
-        <span>Sheet notes</span>
-        <button id="moreInfoBtn" class="btn secondary"
-          style="font-size:11px;padding:4px 10px;">
-          More info
-        </button>
+      <!-- Quick bull note -->
+      <div class="rider-meta-panel">
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Bull note</span>
+          <span class="rider-meta-value" id="bullNoteLine">—</span>
+        </div>
       </div>
 
+      <!-- Short preview -->
+      <div class="notes-label" style="margin-top:8px;">
+        <span>Sheet notes preview</span>
+      </div>
       <div class="sheet-notes-preview" id="notesPreview">
         No additional info for this ride.
+      </div>
+
+      <!-- Big More Info button at bottom -->
+      <div class="more-info-cta">
+        <button id="moreInfoBtn" class="btn secondary">
+          More info / full notes
+        </button>
       </div>
 
       <div id="moreInfoModal" class="modal-backdrop" style="display:none;">
@@ -943,10 +989,15 @@
 
   const resultPillEl = document.getElementById("resultPill");
   const totalScoreDisplayEl = document.getElementById("totalScoreDisplay");
-  const splitScoreDisplayEl = document.getElementById("splitScoreDisplay");
+  const riderScoreDisplayEl = document.getElementById("riderScoreDisplay");
+  const bullScoreDisplayEl = document.getElementById("bullScoreDisplay");
+
   const riderCareerLineEl = document.getElementById("riderCareerLine");
   const riderSeasonLineEl = document.getElementById("riderSeasonLine");
+  const riderPointsLineEl = document.getElementById("riderPointsLine");
+  const riderEarningsLineEl = document.getElementById("riderEarningsLine");
   const riderPotentialLineEl = document.getElementById("riderPotentialLine");
+  const bullNoteLineEl = document.getElementById("bullNoteLine");
   const notesPreviewEl = document.getElementById("notesPreview");
 
   function slugifyRiderName(name) {
@@ -1252,24 +1303,38 @@
     const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
     const text = stripHtml(cleanHtml);
 
-    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const tmp = document.createElement("div");
+    tmp.innerHTML = cleanHtml;
+    const ps = Array.from(tmp.querySelectorAll("p"));
 
     let career = "—";
     let season = "—";
+    let points = "—";
+    let earnings = "—";
     let potential = "—";
+    let bullNote = "—";
 
-    lines.forEach(line => {
-      const lower = line.toLowerCase();
+    ps.forEach(p => {
+      const raw = stripHtml(p.innerHTML).trim();
+      const lower = raw.toLowerCase();
+      if (!raw) return;
+
       if (lower.startsWith("career")) {
-        career = line.replace(/^career\s*[:\-]?\s*/i, "");
-      } else if (lower.startsWith("season")) {
-        season = line.replace(/^season\s*[:\-]?\s*/i, "");
+        career = raw.replace(/^career\s*:?\s*/i, "");
+      } else if (lower.startsWith("season") || lower.startsWith("rank")) {
+        season = raw.replace(/^(season\s*:?|rank\s*)/i, "");
+      } else if (lower.startsWith("points")) {
+        points = raw.replace(/^points\s*:?\s*/i, "");
+      } else if (lower.startsWith("earnings")) {
+        earnings = raw.replace(/^earnings\s*:?\s*/i, "");
       } else if (lower.startsWith("potential")) {
-        potential = line.replace(/^potential\s*[:\-]?\s*/i, "");
+        potential = raw.replace(/^potential\s*:?\s*/i, "");
+      } else if (lower.includes("no previous matchups") || lower.startsWith("bull")) {
+        bullNote = raw;
       }
     });
 
-    return { career, season, potential, plainText: text };
+    return { career, season, points, earnings, potential, bullNote, plainText: text };
   }
 
   function renderCurrentRide() {
@@ -1452,25 +1517,25 @@
       totalScore = bull + rider;
     }
 
-    if (!isNaN(totalScore)) {
+    riderScoreDisplayEl.textContent = !isNaN(rider) && rider > 0
+      ? rider.toFixed(2)
+      : "—";
+
+    bullScoreDisplayEl.textContent = !isNaN(bull) && bull > 0
+      ? bull.toFixed(2)
+      : "—";
+
+    if (!isNaN(totalScore) && totalScore > 50) {
       totalScoreDisplayEl.textContent = totalScore.toFixed(2);
     } else {
       totalScoreDisplayEl.textContent = "—";
     }
 
-    if (!isNaN(bull) && !isNaN(rider)) {
-      splitScoreDisplayEl.textContent = rider.toFixed(2) + " / " + bull.toFixed(2);
-    } else {
-      splitScoreDisplayEl.textContent = "—";
-    }
-
-    resultPillEl.className = "score-pill neutral";
-    if (!isNaN(totalScore) && totalScore > 0) {
+    resultPillEl.className = "";
+    if (!isNaN(totalScore) && totalScore > 50) {
       resultPillEl.textContent = "Qualified ride";
-      resultPillEl.classList.add("good");
     } else if (isNaN(rider) || rider === 0) {
       resultPillEl.textContent = "Buckoff / no score";
-      resultPillEl.classList.add("bad");
     } else {
       resultPillEl.textContent = "Unknown result";
     }
@@ -1482,17 +1547,23 @@
       const meta = parseRiderMetaFromSheetNotes(sheetNoteHtml);
       riderCareerLineEl.textContent = meta.career || "—";
       riderSeasonLineEl.textContent = meta.season || "—";
+      riderPointsLineEl.textContent = meta.points || "—";
+      riderEarningsLineEl.textContent = meta.earnings || "—";
       riderPotentialLineEl.textContent = meta.potential || "—";
+      bullNoteLineEl.textContent = meta.bullNote || "—";
 
-      const preview = meta.plainText.length > 280
-        ? meta.plainText.slice(0, 277) + "…"
+      const preview = meta.plainText.length > 260
+        ? meta.plainText.slice(0, 257) + "…"
         : meta.plainText;
       notesPreviewEl.textContent = preview || "No additional info for this ride.";
     } else {
       moreInfoBody.textContent = "No additional info for this ride.";
       riderCareerLineEl.textContent = "—";
       riderSeasonLineEl.textContent = "—";
+      riderPointsLineEl.textContent = "—";
+      riderEarningsLineEl.textContent = "—";
       riderPotentialLineEl.textContent = "—";
+      bullNoteLineEl.textContent = "—";
       notesPreviewEl.textContent = "No additional info for this ride.";
     }
 
