@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RankRatings PBR Matchup Board</title>
+  <style>
+    :root {
+      --pbr-red: #c8102e;
+      --pbr-dark: #111111;
+      --pbr-gray: #1e1e1e;
+      --pbr-light-gray: #cccccc;
+      --pbr-accent: #00b050;
+      --card-bg: #181818;
+      --seg-bg: #202020;
+    }
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #333 0, #000 55%);
+      color: #f5f5f5;
+    }
+
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 20px 32px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 8px;
+    }
+
+    .branding {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .branding-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .branding-sub {
+      font-size: 12px;
+      color: #aaaaaa;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: #bbbbbb;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 4px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      background: var(--pbr-red);
+      color: #fff;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    .btn.secondary { background: #444; }
+    .btn.large { font-size: 16px; padding: 14px 22px; }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .btn:not(:disabled):hover {
+      background: #e11434;
+      transform: translateY(-1px);
+    }
+    .btn.secondary:not(:disabled):hover { background: #555; }
+
+    .progress-wrapper {
+      margin: 12px 0 10px;
+    }
+
+    .progress-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+    }
+
+    .progress-bar {
+      display: flex;
+      gap: 2px;
+      align-items: stretch;
+      min-height: 20px;
+    }
+
+    .progress-seg {
+      flex: 1 1 0;
+      background: var(--seg-bg);
+      border-radius: 3px;
+      position: relative;
+      border: 1px solid #2a2a2a;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .progress-seg.current {
+      border-color: var(--pbr-red);
+      box-shadow: 0 0 8px rgba(200,16,46,0.8);
+    }
+
+    .progress-seg.completed {
+      background: linear-gradient(135deg, #2a5d2a, #00b050);
+    }
+
+    .progress-seg-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #dddddd;
+    }
+
+    .progress-section-break {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 2px;
+      background: #888;
+    }
+
+    .event-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: baseline;
+      margin: 6px 0 4px;
+    }
+
+    .event-name {
+      font-size: 18px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .section-info {
+      font-size: 13px;
+      color: #dddddd;
+    }
+
+    .position-pill {
+      background: #333;
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.2fr);
+      gap: 18px;
+      margin-top: 6px;
+    }
+    @media (max-width: 900px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: linear-gradient(145deg, #141414, #1e1e1e);
+      border-radius: 10px;
+      padding: 16px 18px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+      border: 1px solid #2a2a2a;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+    }
+
+    .rider-photo-under-outs {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .rider-photo-under-outs img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #444;
+      display: none;
+    }
+
+    .rider-photo-under-outs span {
+      font-size: 11px;
+      color: #aaaaaa;
+    }
+
+    .primary-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .order-block {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .order-number {
+      font-size: 30px;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    }
+
+    .order-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #aaaaaa;
+    }
+
+    .top-name-block {
+      flex: 1;
+      min-width: 230px;
+    }
+
+    .rider-big {
+      font-size: 26px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      cursor: pointer;
+    }
+
+    .rider-big:hover {
+      text-shadow: 0 0 6px rgba(255,255,255,0.25);
+    }
+
+    .bull-name-line {
+      font-size: 18px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #f3f3f3;
+    }
+
+    .bull-name-line span.code {
+      font-size: 14px;
+      color: #bbbbbb;
+      margin-right: 4px;
+    }
+
+    .sub-links {
+      margin-top: 4px;
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .contractor-sub,
+    .record-sub {
+      font-size: 11px;
+      color: #b0b0b0;
+      margin-top: 2px;
+    }
+
+    a { color: #4ea9ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: #cccccc;
+      margin-top: 8px;
+    }
+
+    .meta-item {
+      padding: 4px 8px;
+      background: #101010;
+      border-radius: 4px;
+      border: 1px solid #303030;
+    }
+
+    .gauges-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    .gauge {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background: conic-gradient(#333 0deg 360deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+    }
+
+    .gauge-inner {
+      width: 70%;
+      height: 70%;
+      border-radius: 50%;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4px;
+    }
+
+    .gauge-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+      margin-bottom: 2px;
+    }
+
+    .gauge-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .gauge-sub {
+      font-size: 10px;
+      color: #cccccc;
+    }
+
+    .gauge.low   { --gauge-color: #ffb000; }
+    .gauge.medium{ --gauge-color: #ff6a00; }
+    .gauge.high  { --gauge-color: #00b050; }
+
+    .icon-tile {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background: #101010;
+      border: 1px solid #303030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+    }
+
+    .icon-tile img {
+      width: 90%;
+      height: 90%;
+      object-fit: contain;
+    }
+
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 10px 0 6px;
+    }
+
+    .score-field label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .score-pill {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #101010;
+      border: 1px solid #444;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .score-pill.good {
+      border-color: #00b050;
+      color: #a9f5c5;
+    }
+
+    .score-pill.bad {
+      border-color: #ff0000;
+      color: #ff8080;
+    }
+
+    .score-pill.neutral {
+      border-color: #a2a2a2;
+      color: #dddddd;
+    }
+
+    .notes-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .nav-info {
+      font-size: 12px;
+      color: #cccccc;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .cta-row {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-start;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-row a.btn-link {
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .lists-section {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 1000px) {
+      .lists-section { grid-template-columns: 1fr; }
+    }
+
+    .list-card {
+      background: linear-gradient(145deg, #151515, #1f1f1f);
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .list-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+      margin-bottom: 6px;
+    }
+
+    .list-item-btn {
+      width: 100%;
+      text-align: left;
+      border: none;
+      border-radius: 5px;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      background: #101010;
+      color: #f5f5f5;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .list-item-btn:hover {
+      background: #222;
+    }
+
+    .list-main {
+      font-weight: 600;
+    }
+
+    .list-meta {
+      font-size: 11px;
+      color: #bbbbbb;
+    }
+
+    .pick-row {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .pick-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border: 1px solid #444;
+      background: #101010;
+    }
+
+    .pick-pill.pick {
+      border-color: #00b050;
+      color: #a9f5c5;
+    }
+    .pick-pill.pick-strong {
+      border-color: #00b050;
+      background: linear-gradient(135deg, #016e34, #00b050);
+      color: #fff;
+    }
+    .pick-pill.fade {
+      border-color: #ff0000;
+      color: #ff0000;
+    }
+    .pick-pill.pass {
+      border-color: #a2a2a2;
+      color: #a2a2a2;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-card {
+      max-width: 720px;
+      max-height: 82vh;
+      width: min(720px, 96vw);
+      background: #181818;
+      border-radius: 10px;
+      border: 1px solid #3a3a3a;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+    }
+
+    .modal-body {
+      padding: 14px 18px 16px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #f3f3f3;
+      overflow-y: auto;
+    }
+
+    .modal-body p {
+      margin: 0 0 0.7em;
+    }
+
+    .modal-body strong {
+      font-weight: 700;
+    }
+
+    .rider-meta-panel {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #101010;
+      border: 1px solid #303030;
+    }
+
+    .rider-meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .rider-meta-label {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #bbbbbb;
+    }
+
+    .rider-meta-value {
+      color: #f3f3f3;
+      text-align: right;
+    }
+
+    .more-info-cta {
+      margin-top: auto;
+      display: flex;
+      justify-content: center;
+      padding-top: 10px;
+    }
+
+    .more-info-cta .btn {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header>
+    <div class="branding">
+      <div class="branding-title">RankRatings</div>
+      <div class="branding-sub">Live PBR bull & rider board (auto-loaded sheet)</div>
+    </div>
+    <div class="controls">
+      <span id="dataStatus">Loading latest sheet…</span>
+      <button class="btn secondary" id="reloadBtn" style="display:none;">Reload data</button>
+    </div>
+  </header>
+
+  <div class="progress-wrapper">
+    <div class="progress-label-row">
+      <span>Draw progress</span>
+      <span id="progressSummary">—</span>
+    </div>
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="event-bar">
+    <div class="event-name" id="eventName">Event: —</div>
+    <div class="section-info" id="sectionInfo">Section: —</div>
+    <div class="position-pill" id="positionInfo">Ride — of —</div>
+  </div>
+
+  <div class="main-layout">
+    <!-- Left: Matchup view -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Matchup view</div>
+      </div>
+
+      <div class="primary-row">
+        <div class="order-block">
+          <div class="order-label">Out(s)</div>
+          <div class="order-number" id="orderNumber">—</div>
+
+          <div class="rider-photo-under-outs">
+            <img id="riderPhotoHeader" src="" alt="Rider headshot" />
+            <span id="riderPhotoHeaderLabel"></span>
+          </div>
+        </div>
+
+        <div class="top-name-block">
+          <div class="rider-big" id="riderBig" title="Open rider on ProBullStats">Rider —</div>
+          <div class="bull-name-line" id="bullNameDisplay">—</div>
+          <div class="sub-links">
+            <button id="bullPreviewBtn" class="btn secondary"
+              style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:4px;">
+              <span style="width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:8px solid #fff;"></span>
+              Bull preview
+            </button>
+            <span id="proBullStatsLinkContainer">ProBullStats: —</span>
+            <span id="abbiLinkContainer">ABBI: —</span>
+          </div>
+          <div class="contractor-sub" id="contractorDisplay">Stock contractor: —</div>
+          <div class="record-sub" id="bullRecordDisplay">Record: —</div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <div class="meta-item" id="eventMetaDisplay">Event tag: —</div>
+      </div>
+
+      <div class="gauges-row">
+        <div class="gauge low" id="bullPowerGauge">
+          <div class="gauge-inner">
+            <div class="gauge-label">Bull Power</div>
+            <div class="gauge-value" id="bullPowerValue">—</div>
+            <div class="gauge-sub">0–100</div>
+          </div>
+        </div>
+
+        <div class="gauge low" id="rideProbGauge">
+          <div class="gauge-inner">
+            <div class="gauge-label">Ride Prob</div>
+            <div class="gauge-value" id="rideProbValue">—</div>
+            <div class="gauge-sub" id="rideProbSub">—</div>
+          </div>
+        </div>
+
+        <div class="gauge low" id="rideAdvGauge">
+          <div class="gauge-inner">
+            <div class="gauge-label">Advantage</div>
+            <div class="gauge-value" id="rideAdvValue">—</div>
+            <div class="gauge-sub" id="rideAdvSub">—</div>
+          </div>
+        </div>
+
+        <div class="icon-tile">
+          <img id="riderHandIcon" src="" alt="Rider hand icon">
+        </div>
+
+        <div class="icon-tile">
+          <img id="bullDirIcon" src="" alt="Bull direction icon">
+        </div>
+      </div>
+
+      <div class="pick-row">
+        <span class="pick-pill" id="pickPill">—</span>
+      </div>
+
+      <div class="cta-row">
+        <a class="btn-link" id="matchupLink" href="#" target="_blank" rel="noopener">
+          <button class="btn large">Go to matchup</button>
+        </a>
+      </div>
+
+      <div class="nav-row">
+        <div class="nav-info" id="navInfo">Waiting for data…</div>
+        <div class="nav-buttons">
+          <button class="btn secondary" id="prevBtn" disabled>&larr; Prev</button>
+          <button class="btn secondary" id="nextBtn" disabled>Next &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Rider Performance -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Rider performance</div>
+      </div>
+
+      <!-- Three key score pills -->
+      <div class="scores-grid">
+        <div class="score-field">
+          <label>Rider score</label>
+          <div class="score-pill" id="riderScoreDisplay">—</div>
+        </div>
+        <div class="score-field">
+          <label>Bull score</label>
+          <div class="score-pill" id="bullScoreDisplay">—</div>
+        </div>
+        <div class="score-field">
+          <label>Total</label>
+          <div class="score-pill" id="totalScoreDisplay">—</div>
+        </div>
+      </div>
+
+      <!-- Overall result -->
+      <div class="rider-meta-panel">
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Result</span>
+          <span class="rider-meta-value" id="resultPill">—</span>
+        </div>
+      </div>
+
+      <!-- Parsed rider info -->
+      <div class="rider-meta-panel">
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Career</span>
+          <span class="rider-meta-value" id="riderCareerLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Season</span>
+          <span class="rider-meta-value" id="riderSeasonLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Points</span>
+          <span class="rider-meta-value" id="riderPointsLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Earnings</span>
+          <span class="rider-meta-value" id="riderEarningsLine">—</span>
+        </div>
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Potential</span>
+          <span class="rider-meta-value" id="riderPotentialLine">—</span>
+        </div>
+      </div>
+
+      <!-- Quick bull note -->
+      <div class="rider-meta-panel">
+        <div class="rider-meta-row">
+          <span class="rider-meta-label">Bull</span>
+          <span class="rider-meta-value" id="bullNoteLine">—</span>
+        </div>
+      </div>
+
+      <!-- Big More Info button at bottom -->
+      <div class="more-info-cta">
+        <button id="moreInfoBtn" class="btn secondary">
+          More info / full notes
+        </button>
+      </div>
+
+      <div id="moreInfoModal" class="modal-backdrop" style="display:none;">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div class="modal-title" id="moreInfoTitle">More info</div>
+            <button id="moreInfoClose" class="btn secondary"
+              style="font-size:11px;padding:2px 8px;">Close</button>
+          </div>
+          <div class="modal-body" id="moreInfoBody">
+            No additional info for this ride.
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="lists-section">
+    <div class="list-card">
+      <div class="list-title">Top 10 ride probabilities</div>
+      <div id="topRideProbList"></div>
+    </div>
+    <div class="list-card">
+      <div class="list-title">Top 10 bull powers</div>
+      <div id="topBullPowerList"></div>
+    </div>
+    <div class="list-card">
+      <div class="list-title">Qualified rides so far</div>
+      <div id="qualifiedRidesList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+  let workbook = null;
+  let currentSheetName = null;
+  let rides = [];
+  let currentIndex = 0;
+  const scoreData = {};
+
+  const COLS = {
+    number: "Number",
+    bullPower: "Bull Power",
+    bullRecord: "Bull Record",
+    bullName: "Bull Name",
+    abbi: "ABBI",
+    contractor: "Stock Contractor",
+    event: "Event",
+    section: "Section",
+    rider: "Bull Rider",
+    rideProb: "Ride Probability (confidence",
+    linkCol: "Link to matchup",
+    sheetNotes: "Notes",
+    pick: "Pick",
+    advantage: "Advantage",
+    bullScore: "Bull Score",
+    riderScore: "Rider Score",
+    totalScore: "Total",
+    postRideNotes: "Post Ride Notes"
+  };
+
+  const reloadBtn = document.getElementById("reloadBtn");
+  const dataStatusEl = document.getElementById("dataStatus");
+
+  const eventNameEl = document.getElementById("eventName");
+  const sectionInfoEl = document.getElementById("sectionInfo");
+  const positionInfoEl = document.getElementById("positionInfo");
+  const navInfoEl = document.getElementById("navInfo");
+  const progressBarEl = document.getElementById("progressBar");
+  const progressSummaryEl = document.getElementById("progressSummary");
+
+  const orderNumberEl = document.getElementById("orderNumber");
+  const riderBigEl = document.getElementById("riderBig");
+  const bullNameDisplayEl = document.getElementById("bullNameDisplay");
+  const proBullStatsLinkContainerEl = document.getElementById("proBullStatsLinkContainer");
+  const abbiLinkContainerEl = document.getElementById("abbiLinkContainer");
+  const contractorDisplayEl = document.getElementById("contractorDisplay");
+  const bullRecordDisplayEl = document.getElementById("bullRecordDisplay");
+  const eventMetaDisplayEl = document.getElementById("eventMetaDisplay");
+  const bullPowerGaugeEl = document.getElementById("bullPowerGauge");
+  const bullPowerValueEl = document.getElementById("bullPowerValue");
+  const rideProbGaugeEl = document.getElementById("rideProbGauge");
+  const rideProbValueEl = document.getElementById("rideProbValue");
+  const rideProbSubEl = document.getElementById("rideProbSub");
+  const rideAdvGaugeEl = document.getElementById("rideAdvGauge");
+  const rideAdvValueEl = document.getElementById("rideAdvValue");
+  const rideAdvSubEl = document.getElementById("rideAdvSub");
+  const matchupLinkEl = document.getElementById("matchupLink");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
+  const riderPhotoHeaderEl = document.getElementById("riderPhotoHeader");
+  const riderPhotoHeaderLabelEl = document.getElementById("riderPhotoHeaderLabel");
+
+  const pickPillEl = document.getElementById("pickPill");
+  const handIconRiderEl = document.getElementById("riderHandIcon");
+  const bullDirIconEl = document.getElementById("bullDirIcon");
+
+  const topRideProbListEl = document.getElementById("topRideProbList");
+  const topBullPowerListEl = document.getElementById("topBullPowerList");
+  const qualifiedRidesListEl = document.getElementById("qualifiedRidesList");
+  const bullPreviewBtn = document.getElementById("bullPreviewBtn");
+  const moreInfoBtn = document.getElementById("moreInfoBtn");
+  const moreInfoModal = document.getElementById("moreInfoModal");
+  const moreInfoTitle = document.getElementById("moreInfoTitle");
+  const moreInfoBody = document.getElementById("moreInfoBody");
+  const moreInfoClose = document.getElementById("moreInfoClose");
+
+  const resultPillEl = document.getElementById("resultPill");
+  const totalScoreDisplayEl = document.getElementById("totalScoreDisplay");
+  const riderScoreDisplayEl = document.getElementById("riderScoreDisplay");
+  const bullScoreDisplayEl = document.getElementById("bullScoreDisplay");
+
+  const riderCareerLineEl = document.getElementById("riderCareerLine");
+  const riderSeasonLineEl = document.getElementById("riderSeasonLine");
+  const riderPointsLineEl = document.getElementById("riderPointsLine");
+  const riderEarningsLineEl = document.getElementById("riderEarningsLine");
+  const riderPotentialLineEl = document.getElementById("riderPotentialLine");
+  const bullNoteLineEl = document.getElementById("bullNoteLine");
+
+  function slugifyRiderName(name) {
+    if (!name) return "";
+    return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  function buildRiderPhotoUrl(name) {
+    const slug = slugifyRiderName(name);
+    if (!slug) return null;
+    return "https://probullstats.com/pictures/br/" + slug + ".jpg";
+  }
+
+  const RIDER_PHOTO_MAP = {
+    "Cort McFadden": "https://probullstats.com/pictures/br/cortmcfadden.jpg?id=57"
+  };
+
+  function getRiderPhotoUrl(name) {
+    if (!name) return null;
+    if (RIDER_PHOTO_MAP[name]) return RIDER_PHOTO_MAP[name];
+    return buildRiderPhotoUrl(name);
+  }
+
+  async function loadDefaultWorkbook() {
+    try {
+      dataStatusEl.textContent = "Loading latest sheet…";
+      const res = await fetch("data/pbr_matchups_full.xlsx?_=" + Date.now());
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
+      }
+      const buf = await res.arrayBuffer();
+      workbook = XLSX.read(buf, { type: "array" });
+
+      const sheetNames = workbook.SheetNames || [];
+      if (!sheetNames.length) {
+        throw new Error("No sheets found");
+      }
+      currentSheetName = sheetNames[0];
+      loadSheet(currentSheetName);
+
+      dataStatusEl.textContent = "Live sheet: " + currentSheetName;
+      reloadBtn.style.display = "inline-block";
+    } catch (err) {
+      console.error(err);
+      dataStatusEl.textContent = "Error loading sheet. Check data/pbr_matchups_full.xlsx";
+      navInfoEl.textContent = "Could not load data.";
+    }
+  }
+
+  function loadSheet(name) {
+    if (!workbook || !workbook.SheetNames.includes(name)) return;
+    const ws = workbook.Sheets[name];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    rides = json;
+    onRidesLoaded();
+  }
+
+  function seedScoreDataFromSheet() {
+    if (!rides || !rides.length) return;
+    rides.forEach(row => {
+      const key = getRideKey(row);
+      const bullScore = row[COLS.bullScore];
+      const riderScore = row[COLS.riderScore];
+      const total = row[COLS.totalScore];
+      const notes = row[COLS.postRideNotes];
+
+      const hasAny =
+        (bullScore !== "" && bullScore != null) ||
+        (riderScore !== "" && riderScore != null) ||
+        (total !== "" && total != null) ||
+        (notes !== "" && notes != null);
+
+      if (!hasAny) return;
+
+      scoreData[key] = {
+        bullScore: bullScore ?? "",
+        riderScore: riderScore ?? "",
+        total: total ?? "",
+        notes: notes ?? ""
+      };
+    });
+  }
+
+  function onRidesLoaded() {
+    if (!rides.length) {
+      alert("No rows found in the sheet.");
+      return;
+    }
+    rides.sort((a, b) => {
+      const n1 = Number(a[COLS.number]) || 0;
+      const n2 = Number(b[COLS.number]) || 0;
+      return n1 - n2;
+    });
+
+    seedScoreDataFromSheet();
+
+    currentIndex = 0;
+    prevBtn.disabled = false;
+    nextBtn.disabled = false;
+    buildProgressBar();
+    renderCurrentRide();
+    recalcLists();
+  }
+
+  function buildProgressBar() {
+    progressBarEl.innerHTML = "";
+    if (!rides.length) return;
+
+    const total = rides.length;
+    const sections = [...new Set(rides.map(r => r[COLS.section]))].filter(Boolean);
+
+    rides.forEach((row, idx) => {
+      const seg = document.createElement("div");
+      seg.className = "progress-seg";
+      seg.dataset.index = idx;
+
+      const label = document.createElement("div");
+      label.className = "progress-seg-label";
+      label.textContent = row[COLS.number] || idx + 1;
+      seg.appendChild(label);
+
+      if (idx < total - 1) {
+        const currentSection = row[COLS.section];
+        const nextSection = rides[idx + 1][COLS.section];
+        if (currentSection !== nextSection) {
+          const breakEl = document.createElement("div");
+          breakEl.className = "progress-section-break";
+          seg.appendChild(breakEl);
+        }
+      }
+
+      seg.addEventListener("click", () => {
+        currentIndex = idx;
+        renderCurrentRide();
+      });
+
+      progressBarEl.appendChild(seg);
+    });
+
+    progressSummaryEl.textContent = total + " draws • sections: " + sections.join(", ");
+    updateProgressHighlight();
+  }
+
+  function updateProgressHighlight() {
+    const segs = progressBarEl.querySelectorAll(".progress-seg");
+    segs.forEach((seg, idx) => {
+      seg.classList.remove("current", "completed");
+      if (idx < currentIndex) seg.classList.add("completed");
+      if (idx === currentIndex) seg.classList.add("current");
+    });
+  }
+
+  function getCurrentRide() {
+    return rides[currentIndex];
+  }
+
+  function getRideKey(row) {
+    return [
+      row[COLS.number] ?? "",
+      row[COLS.bullName] ?? "",
+      row[COLS.rider] ?? ""
+    ].join(" :: ");
+  }
+
+  function parseBullName(fullName) {
+    if (!fullName) return { code: "", name: fullName || "", id: "" };
+    const idMatch = fullName.match(/\((\d+)\)\s*$/);
+    const id = idMatch ? idMatch[1] : "";
+    const withoutId = fullName.replace(/\(\d+\)\s*$/, "").trim();
+    const firstSpace = withoutId.indexOf(" ");
+    let code = "";
+    let name = withoutId;
+    if (firstSpace > -1) {
+      code = withoutId.slice(0, firstSpace);
+      name = withoutId.slice(firstSpace + 1);
+    }
+    return { code, name, id };
+  }
+
+  function buildProBullStatsLink(id) {
+    if (!id) return null;
+    return "https://probullstats.com/bulls/" + encodeURIComponent(id);
+  }
+
+  function buildBullVideoLink(id) {
+    if (!id) return null;
+    return "https://probullstats.com/video/index.php?bull=" + encodeURIComponent(id);
+  }
+
+  function buildABBILink(abbiId) {
+    if (!abbiId) return null;
+    return "https://www.abbireg.com/public/animal.php?id=" + encodeURIComponent(abbiId);
+  }
+
+  function buildMatchupLink(bullId, riderName) {
+    if (!bullId || !riderName) return "#";
+    const base = "https://probullstats.com/loggers/matchup.php";
+    const params = new URLSearchParams({
+      bull: bullId,
+      guy: riderName
+    });
+    return base + "?" + params.toString();
+  }
+
+  function buildRiderPageLink(riderName) {
+    if (!riderName) return "#";
+    const base = "https://probullstats.com/rider/";
+    const formatted = riderName.trim().split(/\s+/).join("+");
+    return base + formatted;
+  }
+
+  function setGauge(el, valueEl, fraction, labelEl, labelText, valueText) {
+    if (fraction == null || isNaN(fraction)) {
+      el.style.background = "conic-gradient(#333 0deg 360deg)";
+      valueEl.textContent = "—";
+      if (labelEl) labelEl.textContent = labelText || "—";
+      return;
+    }
+    const clamped = Math.max(0, Math.min(1, fraction));
+    const degrees = clamped * 360;
+
+    let colorClass = "low";
+    if (clamped >= 0.75) colorClass = "high";
+    else if (clamped >= 0.4) colorClass = "medium";
+    el.classList.remove("low", "medium", "high");
+    el.classList.add(colorClass);
+
+    const color =
+      colorClass === "high" ? "#00b050" :
+      colorClass === "medium" ? "#ff6a00" :
+      "#ffb000";
+
+    el.style.background =
+      "conic-gradient(" + color + " 0deg " + degrees + "deg, #333 " + degrees + "deg 360deg)";
+    valueEl.textContent = valueText;
+    if (labelEl) labelEl.textContent = labelText;
+  }
+
+  function renderPickPill(row) {
+    const raw = (row[COLS.pick] || "").toString().trim();
+    let label = raw || "—";
+    const lc = raw.toLowerCase();
+    pickPillEl.className = "pick-pill";
+
+    if (lc.startsWith("pick (strong")) {
+      pickPillEl.classList.add("pick-strong");
+      label = "Pick (strong)";
+    } else if (lc.startsWith("pick")) {
+      pickPillEl.classList.add("pick");
+      label = "Pick";
+    } else if (lc.startsWith("fade")) {
+      pickPillEl.classList.add("fade");
+      label = "Fade";
+    } else if (lc.startsWith("pass")) {
+      pickPillEl.classList.add("pass");
+      label = "Pass";
+    }
+    pickPillEl.textContent = label;
+  }
+
+  function renderHandAndBullIcons(handInfo) {
+    handIconRiderEl.style.display = "none";
+    handIconRiderEl.src = "";
+    bullDirIconEl.style.display = "none";
+    bullDirIconEl.src = "";
+
+    if (handInfo.hand) {
+      if (handInfo.hand.toLowerCase() === "left") {
+        handIconRiderEl.src = "./Left_Hand.png";
+      } else if (handInfo.hand.toLowerCase() === "right") {
+        handIconRiderEl.src = "./Right_Hand.png";
+      }
+      if (handIconRiderEl.src) handIconRiderEl.style.display = "block";
+    }
+
+    if (handInfo.direction) {
+      if (handInfo.direction.toLowerCase() === "left") {
+        bullDirIconEl.src = "./bull_left.png";
+      } else if (handInfo.direction.toLowerCase() === "right") {
+        bullDirIconEl.src = "./bull_right.png";
+      } else if (handInfo.direction.toLowerCase() === "unknown") {
+        bullDirIconEl.src = "./bull_unknown.png";
+      }
+      if (bullDirIconEl.src) bullDirIconEl.style.display = "block";
+    }
+  }
+
+  function normalizeHtmlSpaces(html) {
+    return html
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function stripHtml(html) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+
+  // NEW: strict "first wins" rider fields + UTB/ALL bull stats combination
+  function parseRiderMetaFromSheetNotes(sheetNoteHtml) {
+    const cleanHtml = normalizeHtmlSpaces(sheetNoteHtml);
+    const text = stripHtml(cleanHtml);
+
+    const tmp = document.createElement("div");
+    tmp.innerHTML = cleanHtml;
+
+    const ps = Array.from(tmp.querySelectorAll("p"));
+
+    let career;
+    let season;
+    let points;
+    let earnings;
+    let potential;
+
+    let utbLine;
+    let allLine;
+
+    ps.forEach(p => {
+      const raw = stripHtml(p.innerHTML).trim();
+      if (!raw) return;
+
+      const lower = raw.toLowerCase();
+
+      // RIDER FIELDS: first match wins
+      if (!career && lower.startsWith("career")) {
+        career = raw.replace(/^\s*career[:\-]?\s*/i, "");
+        return;
+      }
+      if (!season && (lower.startsWith("season") || lower.startsWith("rank"))) {
+        season = raw.replace(/^\s*(season|rank)[:\-]?\s*/i, "");
+        return;
+      }
+      if (!points && lower.startsWith("points")) {
+        points = raw.replace(/^\s*points[:\-]?\s*/i, "");
+        return;
+      }
+      if (!earnings && lower.startsWith("earnings")) {
+        earnings = raw.replace(/^\s*earnings[:\-]?\s*/i, "");
+        return;
+      }
+      if (!potential && lower.startsWith("potential")) {
+        potential = raw.replace(/^\s*potential[:\-]?\s*/i, "");
+        return;
+      }
+
+      // BULL STATS: first UTB line, first ALL line
+      if (!utbLine && lower.includes("utb")) {
+        utbLine = raw;
+        return;
+      }
+      if (!allLine && (lower.includes("all levels") || lower.includes("all outs"))) {
+        allLine = raw;
+        return;
+      }
+    });
+
+    let bullStats = "";
+    if (utbLine && allLine) {
+      bullStats = utbLine + " | " + allLine;
+    } else if (utbLine) {
+      bullStats = utbLine;
+    } else if (allLine) {
+      bullStats = allLine;
+    }
+
+    return {
+      career,
+      season,
+      points,
+      earnings,
+      potential,
+      bullStats,
+      plainText: text
+    };
+  }
+
+  function renderCurrentRide() {
+    if (!rides.length) {
+      orderNumberEl.textContent = "—";
+      navInfoEl.textContent = "No ride loaded.";
+      return;
+    }
+    const row = getCurrentRide();
+    const total = rides.length;
+
+    const event = row[COLS.event] || "—";
+    const section = row[COLS.section] || "—";
+    eventNameEl.textContent = "Event: " + event;
+    sectionInfoEl.textContent = "Section: " + section;
+    positionInfoEl.textContent = "Ride " + (currentIndex + 1) + " of " + total;
+    navInfoEl.textContent = "Use progress bar, buttons, or arrow keys.";
+
+    const number = row[COLS.number] || "—";
+    orderNumberEl.textContent = number;
+
+    const fullBullName = row[COLS.bullName] || "—";
+    const parsed = parseBullName(fullBullName);
+
+    const riderName = row[COLS.rider] || "";
+    riderBigEl.textContent = riderName ? riderName : "Rider —";
+    riderBigEl.onclick = () => {
+      if (riderName) {
+        const url = buildRiderPageLink(riderName);
+        if (url && url !== "#") window.open(url, "_blank");
+      }
+    };
+
+    if (riderName) {
+      const photoUrl = getRiderPhotoUrl(riderName);
+      if (photoUrl) {
+        riderPhotoHeaderEl.src = photoUrl;
+        riderPhotoHeaderEl.style.display = "block";
+        riderPhotoHeaderLabelEl.textContent = "";
+      } else {
+        riderPhotoHeaderEl.src = "";
+        riderPhotoHeaderEl.style.display = "none";
+        riderPhotoHeaderLabelEl.textContent = "";
+      }
+    } else {
+      riderPhotoHeaderEl.src = "";
+      riderPhotoHeaderEl.style.display = "none";
+      riderPhotoHeaderLabelEl.textContent = "";
+    }
+
+    bullNameDisplayEl.innerHTML =
+      '<span class="code">' + (parsed.code || "") + "</span>" +
+      (parsed.name || fullBullName);
+
+    const proLink = buildProBullStatsLink(parsed.id);
+    if (proLink) {
+      proBullStatsLinkContainerEl.innerHTML =
+        'ProBullStats: <a href="' + proLink +
+        '" target="_blank" rel="noopener">' + parsed.id + "</a>";
+    } else {
+      proBullStatsLinkContainerEl.textContent = "ProBullStats: —";
+    }
+
+    const videoUrl = buildBullVideoLink(parsed.id);
+    if (videoUrl) {
+      bullPreviewBtn.disabled = false;
+      bullPreviewBtn.onclick = () => window.open(videoUrl, "_blank");
+    } else {
+      bullPreviewBtn.disabled = true;
+      bullPreviewBtn.onclick = null;
+    }
+
+    const abbiId = (row[COLS.abbi] || "").toString().trim();
+    const abbiLink = buildABBILink(abbiId);
+    if (abbiLink) {
+      abbiLinkContainerEl.innerHTML =
+        'ABBI: <a href="' + abbiLink +
+        '" target="_blank" rel="noopener">' + abbiId + "</a>";
+    } else {
+      abbiLinkContainerEl.textContent = "ABBI: —";
+    }
+
+    contractorDisplayEl.textContent =
+      "Stock contractor: " + (row[COLS.contractor] || "—");
+
+    bullRecordDisplayEl.textContent =
+      "Record: " + (row[COLS.bullRecord] || "—");
+
+    eventMetaDisplayEl.textContent = "Event tag: " + event;
+
+    const bullPowerRaw = row[COLS.bullPower];
+    let bullPowerNum = null;
+    if (bullPowerRaw !== "-" && bullPowerRaw !== "" && bullPowerRaw != null) {
+      bullPowerNum = Number(bullPowerRaw);
+    }
+    const bullPowerFrac = bullPowerNum != null && !isNaN(bullPowerNum)
+      ? bullPowerNum / 100
+      : null;
+    const bullPowerText = bullPowerNum != null && !isNaN(bullPowerNum)
+      ? bullPowerNum.toFixed(1)
+      : "—";
+    setGauge(
+      bullPowerGaugeEl,
+      bullPowerValueEl,
+      bullPowerFrac,
+      null,
+      null,
+      bullPowerText
+    );
+
+    const rideProbRaw = (row[COLS.rideProb] || "").toString();
+    let rideProb = null;
+    let confidence = "";
+    const probMatch = rideProbRaw.match(/([0-9.]+)/);
+    if (probMatch) rideProb = parseFloat(probMatch[1]);
+    const confMatch = rideProbRaw.match(/\((\d+)\)/);
+    if (confMatch) confidence = confMatch[1];
+
+    const rideProbText = rideProb != null && !isNaN(rideProb)
+      ? Math.round(rideProb * 100) + "%"
+      : "—";
+    const rideProbFrac = rideProb != null && !isNaN(rideProb) ? rideProb : null;
+    setGauge(
+      rideProbGaugeEl,
+      rideProbValueEl,
+      rideProbFrac,
+      rideProbSubEl,
+      confidence ? "Conf: " + confidence : "—",
+      rideProbText
+    );
+
+    const rawAdv = (row[COLS.advantage] || "").toString().trim();
+
+    let advFraction = null;
+    let advWho = "—";
+    let advPercentValue = "—";
+
+    if (rawAdv) {
+      const lower = rawAdv.toLowerCase();
+
+      if (lower.includes("even")) {
+        advWho = "Even";
+        advPercentValue = "50";
+        advFraction = 0.5;
+      } else {
+        let side = "";
+        if (lower.startsWith("rider")) side = "Rider";
+        else if (lower.startsWith("bull")) side = "Bull";
+
+        const numMatch = rawAdv.match(/(-?[0-9.]+)/);
+        if (side && numMatch) {
+          const val = parseFloat(numMatch[1]);
+          const pct = Math.max(0, Math.min(100, val));
+
+          advWho = side;
+          advPercentValue = pct.toFixed(1).replace(/\.0$/, "");
+          advFraction = pct / 100;
+        }
+      }
+    }
+
+    setGauge(
+      rideAdvGaugeEl,
+      rideAdvValueEl,
+      advFraction,
+      rideAdvSubEl,
+      advWho + (advPercentValue !== "—" ? " (" + advPercentValue + "%)" : ""),
+      advPercentValue
+    );
+
+    const sheetBullScore = row[COLS.bullScore];
+    const sheetRiderScore = row[COLS.riderScore];
+    const sheetTotalScore = row[COLS.totalScore];
+
+    let bull = parseFloat(sheetBullScore);
+    let rider = parseFloat(sheetRiderScore);
+    let totalScore = parseFloat(sheetTotalScore);
+
+    if (!isNaN(bull) && !isNaN(rider) && isNaN(totalScore)) {
+      totalScore = bull + rider;
+    }
+
+    riderScoreDisplayEl.textContent = !isNaN(rider) && rider > 0
+      ? rider.toFixed(2)
+      : "—";
+
+    bullScoreDisplayEl.textContent = !isNaN(bull) && bull > 0
+      ? bull.toFixed(2)
+      : "—";
+
+    if (!isNaN(totalScore) && totalScore > 50) {
+      totalScoreDisplayEl.textContent = totalScore.toFixed(2);
+    } else {
+      totalScoreDisplayEl.textContent = "—";
+    }
+
+    resultPillEl.className = "";
+    if (!isNaN(totalScore) && totalScore > 50) {
+      resultPillEl.textContent = "Qualified ride";
+    } else if (isNaN(rider) || rider === 0) {
+      resultPillEl.textContent = "Buckoff / no score";
+    } else {
+      resultPillEl.textContent = "Unknown result";
+    }
+
+    const sheetNoteHtml = (row[COLS.sheetNotes] || "").toString().trim();
+    if (sheetNoteHtml) {
+      moreInfoBody.innerHTML = sheetNoteHtml;
+
+      const meta = parseRiderMetaFromSheetNotes(sheetNoteHtml);
+      riderCareerLineEl.textContent = meta.career || "—";
+      riderSeasonLineEl.textContent = meta.season || "—";
+      riderPointsLineEl.textContent = meta.points || "—";
+      riderEarningsLineEl.textContent = meta.earnings || "—";
+      riderPotentialLineEl.textContent = meta.potential || "—";
+      bullNoteLineEl.textContent = meta.bullStats || "—";
+    } else {
+      moreInfoBody.textContent = "No additional info for this ride.";
+      riderCareerLineEl.textContent = "—";
+      riderSeasonLineEl.textContent = "—";
+      riderPointsLineEl.textContent = "—";
+      riderEarningsLineEl.textContent = "—";
+      riderPotentialLineEl.textContent = "—";
+      bullNoteLineEl.textContent = "—";
+    }
+
+    const handInfo = {
+      hand: row["Riding Hand"] || null,
+      direction: row["Bull Direction"] || null
+    };
+    renderHandAndBullIcons(handInfo);
+    renderPickPill(row);
+
+    const matchupUrl = buildMatchupLink(parsed.id, riderName);
+    matchupLinkEl.href = matchupUrl || "#";
+
+    updateProgressHighlight();
+  }
+
+  function recalcLists() {
+    if (!rides.length) {
+      topRideProbListEl.innerHTML = "";
+      topBullPowerListEl.innerHTML = "";
+      qualifiedRidesListEl.innerHTML = "";
+      return;
+    }
+
+    const probItems = rides.map((row, idx) => {
+      const rideProbRaw = (row[COLS.rideProb] || "").toString();
+      const m = rideProbRaw.match(/([0-9.]+)/);
+      const val = m ? parseFloat(m[1]) : NaN;
+      return { idx, row, val };
+    }).filter(x => !isNaN(x.val))
+      .sort((a,b) => b.val - a.val)
+      .slice(0, 10);
+
+    topRideProbListEl.innerHTML = "";
+    probItems.forEach(item => {
+      const { row, idx, val } = item;
+      const fullBullName = row[COLS.bullName] || "";
+      const parsed = parseBullName(fullBullName);
+      const riderName = row[COLS.rider] || "";
+      const pct = Math.round(val * 100);
+      const btn = document.createElement("button");
+      btn.className = "list-item-btn";
+      btn.innerHTML = `
+        <span class="list-main">${row[COLS.number] || idx+1}. ${riderName} vs ${parsed.name || fullBullName}</span>
+        <span class="list-meta">${pct}%</span>
+      `;
+      btn.addEventListener("click", () => {
+        const realIndex = rides.indexOf(row);
+        if (realIndex >= 0) {
+          currentIndex = realIndex;
+          renderCurrentRide();
+        }
+      });
+      topRideProbListEl.appendChild(btn);
+    });
+
+    const bullItems = rides.map((row, idx) => {
+      const raw = row[COLS.bullPower];
+      let val = NaN;
+      if (raw !== "-" && raw !== "" && raw != null) val = parseFloat(raw);
+      return { idx, row, val };
+    }).filter(x => !isNaN(x.val))
+      .sort((a,b) => b.val - a.val)
+      .slice(0, 10);
+
+    topBullPowerListEl.innerHTML = "";
+    bullItems.forEach(item => {
+      const { row, idx, val } = item;
+      const fullBullName = row[COLS.bullName] || "";
+      const parsed = parseBullName(fullBullName);
+      const btn = document.createElement("button");
+      btn.className = "list-item-btn";
+      btn.innerHTML = `
+        <span class="list-main">${row[COLS.number] || idx+1}. ${parsed.name || fullBullName}</span>
+        <span class="list-meta">${val.toFixed(1)}</span>
+      `;
+      btn.addEventListener("click", () => {
+        const realIndex = rides.indexOf(row);
+        if (realIndex >= 0) {
+          currentIndex = realIndex;
+          renderCurrentRide();
+        }
+      });
+      topBullPowerListEl.appendChild(btn);
+    });
+
+    const qualified = [];
+    for (const row of rides) {
+      const key = getRideKey(row);
+      const s = scoreData[key];
+
+      const bullScoreCell = row[COLS.bullScore];
+      const riderScoreCell = row[COLS.riderScore];
+      const totalCell = row[COLS.totalScore];
+
+      let bull = parseFloat(s && s.bullScore !== undefined && s.bullScore !== "" ? s.bullScore : bullScoreCell);
+      let rider = parseFloat(s && s.riderScore !== undefined && s.riderScore !== "" ? s.riderScore : riderScoreCell);
+      let total = parseFloat(s && s.total !== undefined && s.total !== "" ? s.total : totalCell);
+
+      if (!isNaN(bull) && !isNaN(rider) && isNaN(total)) {
+        total = bull + rider;
+      }
+
+      if (isNaN(total) || total <= 50) continue;
+
+      qualified.push({ row, total });
+    }
+
+    qualified.sort((a,b) => b.total - a.total);
+
+    qualifiedRidesListEl.innerHTML = "";
+    qualified.forEach((item, index) => {
+      const { row, total } = item;
+      const fullBullName = row[COLS.bullName] || "";
+      const parsed = parseBullName(fullBullName);
+      const riderName = row[COLS.rider] || "";
+
+      const placeNumber = index + 1;
+      const placeSuffix =
+        placeNumber % 10 === 1 && placeNumber % 100 !== 11 ? "st" :
+        placeNumber % 10 === 2 && placeNumber % 100 !== 12 ? "nd" :
+        placeNumber % 10 === 3 && placeNumber % 100 !== 13 ? "rd" : "th";
+      const placeLabel = placeNumber + placeSuffix;
+
+      const btn = document.createElement("button");
+      btn.className = "list-item-btn";
+      btn.innerHTML = `
+        <span class="list-main">${placeLabel}: ${riderName} on ${parsed.name || fullBullName}</span>
+        <span class="list-meta">${total.toFixed(2)}</span>
+      `;
+      btn.addEventListener("click", () => {
+        const idx = rides.indexOf(row);
+        if (idx >= 0) {
+          currentIndex = idx;
+          renderCurrentRide();
+        }
+      });
+      qualifiedRidesListEl.appendChild(btn);
+    });
+
+    if (!qualified.length) {
+      qualifiedRidesListEl.innerHTML =
+        '<div class="list-meta">No qualified rides yet (50+ total).</div>';
+    }
+  }
+
+  prevBtn.addEventListener("click", () => {
+    if (!rides.length) return;
+    currentIndex = (currentIndex - 1 + rides.length) % rides.length;
+    renderCurrentRide();
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (!rides.length) return;
+    currentIndex = (currentIndex + 1) % rides.length;
+    renderCurrentRide();
+  });
+
+  document.addEventListener("keydown", e => {
+    if (!rides.length) return;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      prevBtn.click();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      nextBtn.click();
+    }
+  });
+
+  function openMoreInfoModal() {
+    if (!moreInfoModal || !moreInfoBody) return;
+    moreInfoModal.style.display = "flex";
+  }
+
+  function closeMoreInfoModal() {
+    if (!moreInfoModal) return;
+    moreInfoModal.style.display = "none";
+  }
+
+  if (moreInfoBtn) {
+    moreInfoBtn.addEventListener("click", () => {
+      openMoreInfoModal();
+    });
+  }
+
+  if (moreInfoClose) {
+    moreInfoClose.addEventListener("click", () => {
+      closeMoreInfoModal();
+    });
+  }
+
+  if (moreInfoModal) {
+    moreInfoModal.addEventListener("click", (e) => {
+      if (e.target === moreInfoModal) {
+        closeMoreInfoModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && moreInfoModal && moreInfoModal.style.display === "flex") {
+      closeMoreInfoModal();
+    }
+  });
+
+  reloadBtn.addEventListener("click", () => {
+    loadDefaultWorkbook();
+  });
+
+  loadDefaultWorkbook();
+</script>
+</body>
+</html>
