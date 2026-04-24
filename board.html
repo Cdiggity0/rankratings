@@ -123,8 +123,9 @@
     }
 
     .progress-seg.current {
-      border-color: var(--pbr-red);
-      box-shadow: 0 0 8px rgba(200,16,46,0.8);
+      outline: 2px solid #ffffff;
+      outline-offset: -2px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
 
     .progress-seg.completed {
@@ -138,18 +139,21 @@
     }
 
     .progress-seg.status-qualified {
-      background: linear-gradient(135deg, #2a5d2a, #00b050);
-      border-color: #00b050;
+      background: #1a241a;
+      border-color: #16a34a;
+      box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
     }
 
     .progress-seg.status-buckoff {
-      background: linear-gradient(135deg, #5a1515, #b91c1c);
+      background: #241717;
       border-color: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
     }
 
     .progress-seg.status-reride {
-      background: linear-gradient(135deg, #6b5712, #f2c94c);
+      background: #26200f;
       border-color: #f2c94c;
+      box-shadow: 0 0 6px rgba(242, 201, 76, 0.4);
     }
 
     .progress-seg-label {
@@ -1269,6 +1273,49 @@
   }
 
   function buildDisplayRides() {
+
+    const rrLinks = new Map();
+
+    // First pass: find RR bull rows and link them to prior reride flags by rider+section
+    baseRides.forEach(row => {
+      const bullNameRaw = (row[COLS.bullName] || "").toString().trim().toLowerCase();
+      if (bullNameRaw !== "rr") return;
+
+      const rider = (row[COLS.rider] || "").toString().trim();
+      const section = (row[COLS.section] || "").toString().trim();
+      if (!rider || !section) return;
+
+      let bestCandidate = null;
+      baseRides.forEach(candidate => {
+        if ((candidate[COLS.rider] || "").toString().trim() !== rider) return;
+        if ((candidate[COLS.section] || "").toString().trim() != section) return;
+
+        const state = getScoreStateForRow(candidate);
+        if (!state.reride) return;
+        if (candidate === row) return;
+
+        const cNum = parseFloat(candidate[COLS.number]);
+        const rNum = parseFloat(row[COLS.number]);
+        if (!isNaN(cNum) && !isNaN(rNum) && cNum >= rNum) return;
+
+        if (!bestCandidate) {
+          bestCandidate = candidate;
+          return;
+        }
+        const bestNum = parseFloat(bestCandidate[COLS.number]);
+        if (isNaN(bestNum) || (!isNaN(cNum) && cNum > bestNum)) {
+          bestCandidate = candidate;
+        }
+      });
+
+      if (bestCandidate) {
+        const key = getBaseRideKey(bestCandidate);
+        const list = rrLinks.get(key) || [];
+        list.push(row);
+        rrLinks.set(key, list);
+      }
+    });
+
     const bySection = new Map();
 
     baseRides.forEach(row => {
@@ -1291,19 +1338,33 @@
         const state = getScoreStateForRow(row);
         if (!state.reride) return;
 
-        const sourceKey = getRideKey(row);
-        const rerideRow = {
-          ...row,
-          [COLS.bullName]: "Reride Bull",
-          [COLS.abbi]: "",
-          [COLS.contractor]: "",
-          [COLS.bullRecord]: "",
-          [COLS.bullPower]: "",
-          [COLS.linkCol]: "",
-          __isReride: true,
-          __sourceKey: sourceKey
-        };
-        built.push(rerideRow);
+        const baseKey = getBaseRideKey(row);
+        const linkedRrRows = rrLinks.get(baseKey) || [];
+
+        if (linkedRrRows.length) {
+          linkedRrRows.forEach(rrRow => {
+            const rrDisplay = {
+              ...rrRow,
+              __isReride: true,
+              __sourceKey: getRideKey(row)
+            };
+            built.push(rrDisplay);
+          });
+        } else {
+          const sourceKey = getRideKey(row);
+          const rerideRow = {
+            ...row,
+            [COLS.bullName]: "Reride Bull",
+            [COLS.abbi]: "",
+            [COLS.contractor]: "",
+            [COLS.bullRecord]: "",
+            [COLS.bullPower]: "",
+            [COLS.linkCol]: "",
+            __isReride: true,
+            __sourceKey: sourceKey
+          };
+          built.push(rerideRow);
+        }
       });
     });
 
