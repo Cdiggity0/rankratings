@@ -1225,6 +1225,9 @@
   }
 
   function getRideKey(row) {
+    if (row.__isReride) {
+      return (row.__sourceKey || getBaseRideKey(row)) + " :: reride";
+    }
     return getBaseRideKey(row);
   }
 
@@ -1266,8 +1269,6 @@
   }
 
   function buildDisplayRides() {
-    // Reride flags live only on the original draw rows (where rr is typed into scores).
-    // RR bull rows are treated as normal rides; we do not generate extra placeholder rows here.
     const bySection = new Map();
 
     baseRides.forEach(row => {
@@ -1285,27 +1286,30 @@
       });
 
       rows.forEach(row => built.push(row));
+
+      rows.forEach(row => {
+        const state = getScoreStateForRow(row);
+        if (!state.reride) return;
+
+        const sourceKey = getRideKey(row);
+        const rerideRow = {
+          ...row,
+          [COLS.bullName]: "Reride Bull",
+          [COLS.abbi]: "",
+          [COLS.contractor]: "",
+          [COLS.bullRecord]: "",
+          [COLS.bullPower]: "",
+          [COLS.linkCol]: "",
+          __isReride: true,
+          __sourceKey: sourceKey
+        };
+        built.push(rerideRow);
+      });
     });
 
     return built;
   }
 
-  function rebuildDisplayRides() {
-    const previousKey = rides[currentIndex] ? getRideKey(rides[currentIndex]) : null;
-    rides = buildDisplayRides();
-
-    if (!rides.length) {
-      currentIndex = 0;
-      return;
-    }
-
-    if (previousKey) {
-      const found = rides.findIndex(r => getRideKey(r) === previousKey);
-      currentIndex = found >= 0 ? found : Math.min(currentIndex, rides.length - 1);
-    } else {
-      currentIndex = 0;
-    }
-  }
   function rebuildDisplayRides() {
     const previousKey = rides[currentIndex] ? getRideKey(rides[currentIndex]) : null;
     rides = buildDisplayRides();
@@ -1554,7 +1558,7 @@
     positionInfoEl.textContent = "Ride " + (currentIndex + 1) + " of " + total;
     navInfoEl.textContent = "Use progress bar, buttons, or arrow keys.";
 
-    const number = row[COLS.number] || "—";
+    const number = row.__isReride ? "RR" : (row[COLS.number] || "—");
     orderNumberEl.textContent = number;
 
     const riderName = row[COLS.rider] || "";
@@ -1583,7 +1587,16 @@
       riderPhotoHeaderLabelEl.textContent = "";
     }
 
-    {
+    if (row.__isReride) {
+      bullNameDisplayEl.innerHTML = '<span class="code"></span><span class="reride-bull">Reride Bull</span>';
+      proBullStatsLinkContainerEl.textContent = "ProBullStats: —";
+      abbiLinkContainerEl.textContent = "ABBI: —";
+      contractorDisplayEl.textContent = "Stock contractor: —";
+      bullRecordDisplayEl.textContent = "Record: —";
+      bullPreviewBtn.disabled = true;
+      bullPreviewBtn.onclick = null;
+      matchupLinkEl.href = "#";
+    } else {
       const fullBullName = row[COLS.bullName] || "—";
       const parsed = parseBullName(fullBullName);
 
@@ -1631,7 +1644,9 @@
 
     eventMetaDisplayEl.textContent = "Event tag: " + event;
 
-    {
+    if (row.__isReride) {
+      setGauge(bullPowerGaugeEl, bullPowerValueEl, null, null, null, "—");
+    } else {
       const bullPowerRaw = row[COLS.bullPower];
       let bullPowerNum = null;
       if (bullPowerRaw !== "-" && bullPowerRaw !== "" && bullPowerRaw != null) {
@@ -1737,7 +1752,7 @@
       riderPointsLineEl.textContent = meta.points || '—';
       riderEarningsLineEl.textContent = meta.earnings || '—';
       riderPotentialLineEl.textContent = meta.potential || '—';
-      bullNoteLineEl.textContent = meta.bullStats || '—';
+      bullNoteLineEl.textContent = row.__isReride ? 'Reride bull not assigned yet' : (meta.bullStats || '—');
     } else {
       moreInfoBody.textContent = 'No additional info for this ride.';
       riderCareerLineEl.textContent = '—';
@@ -1745,7 +1760,7 @@
       riderPointsLineEl.textContent = '—';
       riderEarningsLineEl.textContent = '—';
       riderPotentialLineEl.textContent = '—';
-      bullNoteLineEl.textContent = '—';
+      bullNoteLineEl.textContent = row.__isReride ? 'Reride bull not assigned yet' : '—';
     }
 
     const handInfo = {
