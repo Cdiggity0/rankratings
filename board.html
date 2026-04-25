@@ -1102,7 +1102,7 @@
   async function loadDefaultWorkbook() {
     try {
       dataStatusEl.textContent = "Loading latest sheet…";
-      const res = await fetch("data/pbr_matchups_full-2.xlsx?_=" + Date.now());
+      const res = await fetch("data/pbr_matchups_full.xlsx?_=" + Date.now());
       if (!res.ok) {
         throw new Error("HTTP " + res.status);
       }
