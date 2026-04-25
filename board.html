@@ -123,31 +123,12 @@
     }
 
     .progress-seg.current {
-      outline: 2px solid #ffffff;
-      outline-offset: -2px;
-      box-shadow: 0 0 10px rgba(255,255,255,0.4);
+      border-color: var(--pbr-red);
+      box-shadow: 0 0 8px rgba(200,16,46,0.8);
     }
 
     .progress-seg.completed {
       background: linear-gradient(135deg, #2a5d2a, #00b050);
-    }
-
-    .progress-seg.status-coming-up {
-      background: var(--seg-bg);
-      border-color: #2a2a2a;
-      box-shadow: none;
-    }
-
-    .progress-seg.status-qualified {
-      background: #1a241a;
-      border-color: #16a34a;
-      box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
-    }
-
-    .progress-seg.status-buckoff {
-      background: #241717;
-      border-color: #ef4444;
-      box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
     }
 
     .progress-seg-label {
@@ -1190,21 +1171,11 @@
   }
 
   function updateProgressHighlight() {
-    const segs = progressBarEl.querySelectorAll('.progress-seg');
+    const segs = progressBarEl.querySelectorAll(".progress-seg");
     segs.forEach((seg, idx) => {
-      seg.classList.remove('current', 'completed', 'status-coming-up', 'status-qualified', 'status-buckoff');
-      const row = rides[idx];
-      const state = row ? getScoreStateForRow(row) : null;
-      if (state) {
-        if (!isNaN(state.totalNum) && state.totalNum > 50) {
-          seg.classList.add('status-qualified');
-        } else if (state.isComingUp) {
-          seg.classList.add('status-coming-up');
-        } else if (state.hasNumeric) {
-          seg.classList.add('status-buckoff');
-        }
-      }
-      if (idx === currentIndex) seg.classList.add('current');
+      seg.classList.remove("current", "completed");
+      if (idx < currentIndex) seg.classList.add("completed");
+      if (idx === currentIndex) seg.classList.add("current");
     });
   }
 
@@ -1757,45 +1728,6 @@
     renderPickPill(row);
     updateProgressHighlight();
   }
-    const state = getScoreStateForRow(row);
-
-    riderScoreDisplayEl.className = 'score-pill';
-    bullScoreDisplayEl.className = 'score-pill';
-    totalScoreDisplayEl.className = 'score-pill';
-
-    if (!isNaN(state.totalNum) && state.totalNum > 50) {
-      // Qualified ride
-      riderScoreDisplayEl.textContent = !isNaN(state.riderNum) && state.riderNum > 0 ? state.riderNum.toFixed(2) : '—';
-      bullScoreDisplayEl.textContent = !isNaN(state.bullNum) && state.bullNum > 0 ? state.bullNum.toFixed(2) : '—';
-      totalScoreDisplayEl.textContent = state.totalNum.toFixed(2);
-      riderScoreDisplayEl.classList.add('good');
-      bullScoreDisplayEl.classList.add('good');
-      totalScoreDisplayEl.classList.add('good');
-
-      resultPillEl.textContent = 'Qualified ride';
-    } else if (state.isComingUp) {
-      // No scores yet
-      riderScoreDisplayEl.textContent = '—';
-      bullScoreDisplayEl.textContent = '—';
-      totalScoreDisplayEl.textContent = '—';
-      resultPillEl.textContent = 'Coming Up';
-    } else if (state.hasNumeric) {
-      // Buckoff / no score
-      riderScoreDisplayEl.textContent = !isNaN(state.riderNum) && state.riderNum > 0 ? state.riderNum.toFixed(2) : '—';
-      bullScoreDisplayEl.textContent = !isNaN(state.bullNum) && state.bullNum > 0 ? state.bullNum.toFixed(2) : '—';
-      totalScoreDisplayEl.textContent = '—';
-      riderScoreDisplayEl.classList.add('bad');
-      bullScoreDisplayEl.classList.add('bad');
-      totalScoreDisplayEl.classList.add('bad');
-
-      resultPillEl.textContent = 'Buckoff / no score';
-    } else {
-      riderScoreDisplayEl.textContent = '—';
-      bullScoreDisplayEl.textContent = '—';
-      totalScoreDisplayEl.textContent = '—';
-      resultPillEl.textContent = 'Coming Up';
-    }
-
 
   function recalcLists() {
     if (!rides.length) {
