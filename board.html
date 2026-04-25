@@ -139,21 +139,21 @@
     }
 
     .progress-seg.status-rr {
-      background: linear-gradient(135deg, #715c04, #facc15);
-      border-color: #eab308;
-      box-shadow: 0 0 8px rgba(250, 204, 21, 0.35);
+      background: #1e1800;
+      border-color: #facc15;
+      box-shadow: inset 0 0 4px rgba(250, 204, 21, 0.2), 0 0 12px rgba(250, 204, 21, 0.35);
     }
 
     .progress-seg.status-qualified {
-      background: linear-gradient(135deg, #0f4519, #178d35);
+      background: #11230f;
       border-color: #16a34a;
-      box-shadow: 0 0 8px rgba(22, 163, 74, 0.45);
+      box-shadow: inset 0 0 4px rgba(22, 163, 74, 0.2), 0 0 12px rgba(22, 163, 74, 0.35);
     }
 
     .progress-seg.status-buckoff {
-      background: linear-gradient(135deg, #5a1616, #ef4444);
+      background: #2a1010;
       border-color: #dc2626;
-      box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
+      box-shadow: inset 0 0 4px rgba(239, 68, 68, 0.2), 0 0 12px rgba(239, 68, 68, 0.35);
     }
 
     .progress-seg-label {
@@ -164,6 +164,18 @@
       justify-content: center;
       font-size: 10px;
       color: #dddddd;
+    }
+
+    .progress-seg.status-qualified .progress-seg-label {
+      color: #a9f5c5;
+    }
+
+    .progress-seg.status-buckoff .progress-seg-label {
+      color: #ff8080;
+    }
+
+    .progress-seg.status-rr .progress-seg-label {
+      color: #fde68a;
     }
 
     .progress-section-break {
@@ -1038,7 +1050,8 @@
     const total = parseFloat(totalRaw);
 
     const isRRValue = raw => typeof raw === "string" && raw.trim().toLowerCase() === "rr";
-    const isRR = isRRValue(bullRaw) || isRRValue(riderRaw) || isRRValue(totalRaw);
+    const rerideRow = isRerideRow(row);
+    const isRR = rerideRow || isRRValue(bullRaw) || isRRValue(riderRaw) || isRRValue(totalRaw);
 
     const hasBull = !isNaN(bull);
     const hasRider = !isNaN(rider);
@@ -1052,6 +1065,18 @@
     return { bull, rider, total, hasAnyScore, isQualified, isBuckoff, isRR };
   }
 
+  function isRerideRow(row) {
+    const valueMatchesRR = raw => typeof raw === "string" && raw.trim().toLowerCase() === "rr";
+    if (valueMatchesRR(row[COLS.bullName])) return true;
+
+    const rerideHeaders = new Set(["rr", "rr bull", "reride bull", "reridebull", "reride"]);
+    for (const key of Object.keys(row)) {
+      if (rerideHeaders.has(key.trim().toLowerCase()) && valueMatchesRR(row[key])) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   function slugifyRiderName(name) {
     if (!name) return "";
@@ -1140,6 +1165,11 @@
       return;
     }
     rides.sort((a, b) => {
+      const aIsRR = isRerideRow(a);
+      const bIsRR = isRerideRow(b);
+      if (aIsRR && !bIsRR) return 1;
+      if (!aIsRR && bIsRR) return -1;
+
       const n1 = Number(a[COLS.number]) || 0;
       const n2 = Number(b[COLS.number]) || 0;
       return n1 - n2;
@@ -1169,7 +1199,7 @@
 
       const label = document.createElement("div");
       label.className = "progress-seg-label";
-      label.textContent = row[COLS.number] || idx + 1;
+      label.textContent = isRerideRow(row) ? "RR" : row[COLS.number] || idx + 1;
       seg.appendChild(label);
 
       if (idx < total - 1) {
@@ -1197,16 +1227,16 @@
   function updateProgressHighlight() {
     const segs = progressBarEl.querySelectorAll('.progress-seg');
     segs.forEach((seg, idx) => {
-      seg.classList.remove('current', 'completed', 'status-coming-up', 'status-qualified', 'status-buckoff');
+      seg.classList.remove('current', 'completed', 'status-coming-up', 'status-qualified', 'status-buckoff', 'status-rr');
       const row = rides[idx];
       if (row) {
         const s = getSimpleScoreState(row);
-        if (s.isRR) {
-          seg.classList.add('status-rr');
-        } else if (s.isBuckoff) {
+        if (s.isBuckoff) {
           seg.classList.add('status-buckoff');
         } else if (s.isQualified) {
           seg.classList.add('status-qualified');
+        } else if (s.isRR) {
+          seg.classList.add('status-rr');
         } else if (!s.hasAnyScore) {
           seg.classList.add('status-coming-up');
         }
@@ -1462,7 +1492,8 @@
     const number = row[COLS.number] || "—";
     orderNumberEl.textContent = number;
 
-    const fullBullName = row[COLS.bullName] || "—";
+    const isRerideEntry = isRerideRow(row);
+    const fullBullName = isRerideEntry ? "reride bull" : row[COLS.bullName] || "—";
     const parsed = parseBullName(fullBullName);
 
     const riderName = row[COLS.rider] || "";
@@ -1491,43 +1522,53 @@
       riderPhotoHeaderLabelEl.textContent = "";
     }
 
-    bullNameDisplayEl.innerHTML =
-      '<span class="code">' + (parsed.code || "") + "</span>" +
-      (parsed.name || fullBullName);
-
-    const proLink = buildProBullStatsLink(parsed.id);
-    if (proLink) {
-      proBullStatsLinkContainerEl.innerHTML =
-        'ProBullStats: <a href="' + proLink +
-        '" target="_blank" rel="noopener">' + parsed.id + "</a>";
-    } else {
+    if (isRerideEntry) {
+      bullNameDisplayEl.textContent = "reride bull";
       proBullStatsLinkContainerEl.textContent = "ProBullStats: —";
-    }
-
-    const videoUrl = buildBullVideoLink(parsed.id);
-    if (videoUrl) {
-      bullPreviewBtn.disabled = false;
-      bullPreviewBtn.onclick = () => window.open(videoUrl, "_blank");
-    } else {
       bullPreviewBtn.disabled = true;
       bullPreviewBtn.onclick = null;
-    }
-
-    const abbiId = (row[COLS.abbi] || "").toString().trim();
-    const abbiLink = buildABBILink(abbiId);
-    if (abbiLink) {
-      abbiLinkContainerEl.innerHTML =
-        'ABBI: <a href="' + abbiLink +
-        '" target="_blank" rel="noopener">' + abbiId + "</a>";
-    } else {
       abbiLinkContainerEl.textContent = "ABBI: —";
+      contractorDisplayEl.textContent = "Stock contractor: —";
+      bullRecordDisplayEl.textContent = "Record: —";
+    } else {
+      bullNameDisplayEl.innerHTML =
+        '<span class="code">' + (parsed.code || "") + "</span>" +
+        (parsed.name || fullBullName);
+
+      const proLink = buildProBullStatsLink(parsed.id);
+      if (proLink) {
+        proBullStatsLinkContainerEl.innerHTML =
+          'ProBullStats: <a href="' + proLink +
+          '" target="_blank" rel="noopener">' + parsed.id + "</a>";
+      } else {
+        proBullStatsLinkContainerEl.textContent = "ProBullStats: —";
+      }
+
+      const videoUrl = buildBullVideoLink(parsed.id);
+      if (videoUrl) {
+        bullPreviewBtn.disabled = false;
+        bullPreviewBtn.onclick = () => window.open(videoUrl, "_blank");
+      } else {
+        bullPreviewBtn.disabled = true;
+        bullPreviewBtn.onclick = null;
+      }
+
+      const abbiId = (row[COLS.abbi] || "").toString().trim();
+      const abbiLink = buildABBILink(abbiId);
+      if (abbiLink) {
+        abbiLinkContainerEl.innerHTML =
+          'ABBI: <a href="' + abbiLink +
+          '" target="_blank" rel="noopener">' + abbiId + "</a>";
+      } else {
+        abbiLinkContainerEl.textContent = "ABBI: —";
+      }
+
+      contractorDisplayEl.textContent =
+        "Stock contractor: " + (row[COLS.contractor] || "—");
+
+      bullRecordDisplayEl.textContent =
+        "Record: " + (row[COLS.bullRecord] || "—");
     }
-
-    contractorDisplayEl.textContent =
-      "Stock contractor: " + (row[COLS.contractor] || "—");
-
-    bullRecordDisplayEl.textContent =
-      "Record: " + (row[COLS.bullRecord] || "—");
 
     eventMetaDisplayEl.textContent = "Event tag: " + event;
 
@@ -1622,6 +1663,7 @@
     const bullIsRR = isRRValue(sheetBullScore);
     const riderIsRR = isRRValue(sheetRiderScore);
     const totalIsRR = isRRValue(sheetTotalScore);
+    const hasAnyRR = bullIsRR || riderIsRR || totalIsRR;
 
     let bull = parseFloat(sheetBullScore);
     let rider = parseFloat(sheetRiderScore);
@@ -1631,11 +1673,15 @@
       totalScore = bull + rider;
     }
 
-    const rowStateClass = !isNaN(totalScore) && totalScore > 50
-      ? "good"
-      : (isNaN(rider) || rider === 0)
+    const rowStateClass = (!isNaN(totalScore) && totalScore === 0)
       ? "bad"
-      : "neutral";
+      : hasAnyRR
+        ? "neutral"
+        : (!isNaN(totalScore) && totalScore > 50
+          ? "good"
+          : (isNaN(rider) || rider === 0)
+            ? "bad"
+            : "neutral");
 
     riderScoreDisplayEl.className = riderIsRR ? "score-pill rr" : "score-pill " + rowStateClass;
     riderScoreDisplayEl.textContent = riderIsRR
@@ -1773,6 +1819,7 @@
 
     const qualified = [];
     for (const row of rides) {
+      if (isRerideRow(row)) continue;
       const key = getRideKey(row);
       const s = scoreData[key];
 
