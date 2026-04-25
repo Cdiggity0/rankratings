@@ -123,12 +123,37 @@
     }
 
     .progress-seg.current {
-      border-color: var(--pbr-red);
-      box-shadow: 0 0 8px rgba(200,16,46,0.8);
+      outline: 2px solid #ffffff;
+      outline-offset: -2px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
 
     .progress-seg.completed {
       background: linear-gradient(135deg, #2a5d2a, #00b050);
+    }
+
+    .progress-seg.status-coming-up {
+      background: var(--seg-bg);
+      border-color: #2a2a2a;
+      box-shadow: none;
+    }
+
+    .progress-seg.status-rr {
+      background: linear-gradient(135deg, #715c04, #facc15);
+      border-color: #eab308;
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.35);
+    }
+
+    .progress-seg.status-qualified {
+      background: linear-gradient(135deg, #0f4519, #178d35);
+      border-color: #16a34a;
+      box-shadow: 0 0 8px rgba(22, 163, 74, 0.45);
+    }
+
+    .progress-seg.status-buckoff {
+      background: linear-gradient(135deg, #5a1616, #ef4444);
+      border-color: #dc2626;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
     }
 
     .progress-seg-label {
@@ -139,20 +164,6 @@
       justify-content: center;
       font-size: 10px;
       color: #dddddd;
-    }
-
-    .score-pill.reride {
-      border-color: #f2c94c;
-      color: #f2c94c;
-    }
-
-    .rider-meta-value.reride {
-      color: #f2c94c;
-      font-weight: 700;
-    }
-
-    .bull-name-line .reride-bull {
-      color: #f2c94c;
     }
 
     .progress-section-break {
@@ -181,20 +192,6 @@
     .section-info {
       font-size: 13px;
       color: #dddddd;
-    }
-
-    .score-pill.reride {
-      border-color: #f2c94c;
-      color: #f2c94c;
-    }
-
-    .rider-meta-value.reride {
-      color: #f2c94c;
-      font-weight: 700;
-    }
-
-    .bull-name-line .reride-bull {
-      color: #f2c94c;
     }
 
     .position-pill {
@@ -469,23 +466,33 @@
       color: #ff8080;
     }
 
+    .score-pill.rr {
+      border-color: #facc15;
+      color: #fde68a;
+      background: #2c2500;
+    }
+
+    .result-good {
+      color: #a9f5c5;
+    }
+
+    .result-bad {
+      color: #ff8080;
+    }
+
+    .score-pill.good {
+      border-color: #00b050;
+      color: #a9f5c5;
+    }
+
+    .score-pill.bad {
+      border-color: #ff0000;
+      color: #ff8080;
+    }
+
     .score-pill.neutral {
       border-color: #a2a2a2;
       color: #dddddd;
-    }
-
-    .score-pill.reride {
-      border-color: #f2c94c;
-      color: #f2c94c;
-    }
-
-    .rider-meta-value.reride {
-      color: #f2c94c;
-      font-weight: 700;
-    }
-
-    .bull-name-line .reride-bull {
-      color: #f2c94c;
     }
 
     .notes-label {
@@ -937,7 +944,6 @@
 <script>
   let workbook = null;
   let currentSheetName = null;
-  let baseRides = [];
   let rides = [];
   let currentIndex = 0;
   const scoreData = {};
@@ -1022,6 +1028,31 @@
   const riderPotentialLineEl = document.getElementById("riderPotentialLine");
   const bullNoteLineEl = document.getElementById("bullNoteLine");
 
+  function getSimpleScoreState(row) {
+    const bullRaw = row[COLS.bullScore];
+    const riderRaw = row[COLS.riderScore];
+    const totalRaw = row[COLS.totalScore];
+
+    const bull = parseFloat(bullRaw);
+    const rider = parseFloat(riderRaw);
+    const total = parseFloat(totalRaw);
+
+    const isRRValue = raw => typeof raw === "string" && raw.trim().toLowerCase() === "rr";
+    const isRR = isRRValue(bullRaw) || isRRValue(riderRaw) || isRRValue(totalRaw);
+
+    const hasBull = !isNaN(bull);
+    const hasRider = !isNaN(rider);
+    const hasTotal = !isNaN(total);
+    const hasAnyScore = hasBull || hasRider || hasTotal || isRR;
+
+    const isQualified = hasTotal;
+    const isBuckoff =
+      hasAnyScore && ((hasRider && rider === 0) || (hasTotal && total === 0));
+
+    return { bull, rider, total, hasAnyScore, isQualified, isBuckoff, isRR };
+  }
+
+
   function slugifyRiderName(name) {
     if (!name) return "";
     return name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1046,7 +1077,7 @@
   async function loadDefaultWorkbook() {
     try {
       dataStatusEl.textContent = "Loading latest sheet…";
-      const res = await fetch("data/pbr_matchups_full.xlsx?_=" + Date.now());
+      const res = await fetch("data/pbr_matchups_full-2.xlsx?_=" + Date.now());
       if (!res.ok) {
         throw new Error("HTTP " + res.status);
       }
@@ -1073,18 +1104,13 @@
     if (!workbook || !workbook.SheetNames.includes(name)) return;
     const ws = workbook.Sheets[name];
     const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
-    baseRides = json.map((row, idx) => ({
-      ...row,
-      __baseIndex: idx,
-      __isReride: false,
-      __sourceKey: null
-    }));
+    rides = json;
     onRidesLoaded();
   }
 
   function seedScoreDataFromSheet() {
-    if (!baseRides || !baseRides.length) return;
-    baseRides.forEach(row => {
+    if (!rides || !rides.length) return;
+    rides.forEach(row => {
       const key = getRideKey(row);
       const bullScore = row[COLS.bullScore];
       const riderScore = row[COLS.riderScore];
@@ -1109,19 +1135,17 @@
   }
 
   function onRidesLoaded() {
-    if (!baseRides.length) {
+    if (!rides.length) {
       alert("No rows found in the sheet.");
       return;
     }
-    baseRides.sort((a, b) => {
+    rides.sort((a, b) => {
       const n1 = Number(a[COLS.number]) || 0;
       const n2 = Number(b[COLS.number]) || 0;
       return n1 - n2;
     });
 
     seedScoreDataFromSheet();
-
-    rebuildDisplayRides();
 
     currentIndex = 0;
     prevBtn.disabled = false;
@@ -1145,7 +1169,7 @@
 
       const label = document.createElement("div");
       label.className = "progress-seg-label";
-      label.textContent = row.__isReride ? "RR" : (row[COLS.number] || idx + 1);
+      label.textContent = row[COLS.number] || idx + 1;
       seg.appendChild(label);
 
       if (idx < total - 1) {
@@ -1171,11 +1195,25 @@
   }
 
   function updateProgressHighlight() {
-    const segs = progressBarEl.querySelectorAll(".progress-seg");
+    const segs = progressBarEl.querySelectorAll('.progress-seg');
     segs.forEach((seg, idx) => {
-      seg.classList.remove("current", "completed");
-      if (idx < currentIndex) seg.classList.add("completed");
-      if (idx === currentIndex) seg.classList.add("current");
+      seg.classList.remove('current', 'completed', 'status-coming-up', 'status-qualified', 'status-buckoff');
+      const row = rides[idx];
+      if (row) {
+        const s = getSimpleScoreState(row);
+        if (s.isRR) {
+          seg.classList.add('status-rr');
+        } else if (s.isBuckoff) {
+          seg.classList.add('status-buckoff');
+        } else if (s.isQualified) {
+          seg.classList.add('status-qualified');
+        } else if (!s.hasAnyScore) {
+          seg.classList.add('status-coming-up');
+        }
+      }
+      if (idx === currentIndex) {
+        seg.classList.add('current');
+      }
     });
   }
 
@@ -1183,117 +1221,12 @@
     return rides[currentIndex];
   }
 
-  function getBaseRideKey(row) {
+  function getRideKey(row) {
     return [
       row[COLS.number] ?? "",
       row[COLS.bullName] ?? "",
-      row[COLS.rider] ?? "",
-      row[COLS.section] ?? "",
-      row.__baseIndex ?? ""
+      row[COLS.rider] ?? ""
     ].join(" :: ");
-  }
-
-  function getRideKey(row) {
-    if (row.__isReride) {
-      return (row.__sourceKey || getBaseRideKey(row)) + " :: reride";
-    }
-    return getBaseRideKey(row);
-  }
-
-  function normalizeScoreToken(value) {
-    return (value ?? "").toString().trim().toLowerCase();
-  }
-
-  function isRerideToken(value) {
-    return normalizeScoreToken(value) === "rr";
-  }
-
-  function isBlankToken(value) {
-    return (value ?? "").toString().trim() === "";
-  }
-
-  function getScoreStateForRow(row) {
-    const key = getRideKey(row);
-    const stored = scoreData[key] || {};
-
-    const bullRaw = stored.bullScore !== undefined ? stored.bullScore : row[COLS.bullScore];
-    const riderRaw = stored.riderScore !== undefined ? stored.riderScore : row[COLS.riderScore];
-    const totalRaw = stored.total !== undefined ? stored.total : row[COLS.totalScore];
-
-    const reride = isRerideToken(bullRaw) || isRerideToken(riderRaw) || isRerideToken(totalRaw);
-
-    const bullNum = parseFloat(bullRaw);
-    const riderNum = parseFloat(riderRaw);
-    let totalNum = parseFloat(totalRaw);
-
-    if (!reride && !isNaN(bullNum) && !isNaN(riderNum) && isNaN(totalNum)) {
-      totalNum = bullNum + riderNum;
-    }
-
-    const hasNumeric = !isNaN(bullNum) || !isNaN(riderNum) || !isNaN(totalNum);
-    const hasAnyTyped = !isBlankToken(bullRaw) || !isBlankToken(riderRaw) || !isBlankToken(totalRaw);
-    const isComingUp = !reride && !hasNumeric && !hasAnyTyped;
-
-    return { key, bullRaw, riderRaw, totalRaw, bullNum, riderNum, totalNum, reride, hasNumeric, hasAnyTyped, isComingUp };
-  }
-
-  function buildDisplayRides() {
-    const bySection = new Map();
-
-    baseRides.forEach(row => {
-      const section = (row[COLS.section] || "").toString();
-      if (!bySection.has(section)) bySection.set(section, []);
-      bySection.get(section).push(row);
-    });
-
-    const built = [];
-    Array.from(bySection.entries()).forEach(([section, rows]) => {
-      rows.sort((a, b) => {
-        const n1 = Number(a[COLS.number]) || 0;
-        const n2 = Number(b[COLS.number]) || 0;
-        return n1 - n2;
-      });
-
-      rows.forEach(row => built.push(row));
-
-      rows.forEach(row => {
-        const state = getScoreStateForRow(row);
-        if (!state.reride) return;
-
-        const sourceKey = getRideKey(row);
-        const rerideRow = {
-          ...row,
-          [COLS.bullName]: "Reride Bull",
-          [COLS.abbi]: "",
-          [COLS.contractor]: "",
-          [COLS.bullRecord]: "",
-          [COLS.bullPower]: "",
-          [COLS.linkCol]: "",
-          __isReride: true,
-          __sourceKey: sourceKey
-        };
-        built.push(rerideRow);
-      });
-    });
-
-    return built;
-  }
-
-  function rebuildDisplayRides() {
-    const previousKey = rides[currentIndex] ? getRideKey(rides[currentIndex]) : null;
-    rides = buildDisplayRides();
-
-    if (!rides.length) {
-      currentIndex = 0;
-      return;
-    }
-
-    if (previousKey) {
-      const found = rides.findIndex(r => getRideKey(r) === previousKey);
-      currentIndex = found >= 0 ? found : Math.min(currentIndex, rides.length - 1);
-    } else {
-      currentIndex = 0;
-    }
   }
 
   function parseBullName(fullName) {
@@ -1518,7 +1451,6 @@
     }
     const row = getCurrentRide();
     const total = rides.length;
-    const state = getScoreStateForRow(row);
 
     const event = row[COLS.event] || "—";
     const section = row[COLS.section] || "—";
@@ -1527,8 +1459,11 @@
     positionInfoEl.textContent = "Ride " + (currentIndex + 1) + " of " + total;
     navInfoEl.textContent = "Use progress bar, buttons, or arrow keys.";
 
-    const number = row.__isReride ? "RR" : (row[COLS.number] || "—");
+    const number = row[COLS.number] || "—";
     orderNumberEl.textContent = number;
+
+    const fullBullName = row[COLS.bullName] || "—";
+    const parsed = parseBullName(fullBullName);
 
     const riderName = row[COLS.rider] || "";
     riderBigEl.textContent = riderName ? riderName : "Rider —";
@@ -1556,75 +1491,65 @@
       riderPhotoHeaderLabelEl.textContent = "";
     }
 
-    if (row.__isReride) {
-      bullNameDisplayEl.innerHTML = '<span class="code"></span><span class="reride-bull">Reride Bull</span>';
+    bullNameDisplayEl.innerHTML =
+      '<span class="code">' + (parsed.code || "") + "</span>" +
+      (parsed.name || fullBullName);
+
+    const proLink = buildProBullStatsLink(parsed.id);
+    if (proLink) {
+      proBullStatsLinkContainerEl.innerHTML =
+        'ProBullStats: <a href="' + proLink +
+        '" target="_blank" rel="noopener">' + parsed.id + "</a>";
+    } else {
       proBullStatsLinkContainerEl.textContent = "ProBullStats: —";
-      abbiLinkContainerEl.textContent = "ABBI: —";
-      contractorDisplayEl.textContent = "Stock contractor: —";
-      bullRecordDisplayEl.textContent = "Record: —";
+    }
+
+    const videoUrl = buildBullVideoLink(parsed.id);
+    if (videoUrl) {
+      bullPreviewBtn.disabled = false;
+      bullPreviewBtn.onclick = () => window.open(videoUrl, "_blank");
+    } else {
       bullPreviewBtn.disabled = true;
       bullPreviewBtn.onclick = null;
-      matchupLinkEl.href = "#";
-    } else {
-      const fullBullName = row[COLS.bullName] || "—";
-      const parsed = parseBullName(fullBullName);
-
-      bullNameDisplayEl.innerHTML =
-        '<span class="code">' + (parsed.code || "") + "</span>" +
-        (parsed.name || fullBullName);
-
-      const proLink = buildProBullStatsLink(parsed.id);
-      if (proLink) {
-        proBullStatsLinkContainerEl.innerHTML =
-          'ProBullStats: <a href="' + proLink +
-          '" target="_blank" rel="noopener">' + parsed.id + "</a>";
-      } else {
-        proBullStatsLinkContainerEl.textContent = "ProBullStats: —";
-      }
-
-      const videoUrl = buildBullVideoLink(parsed.id);
-      if (videoUrl) {
-        bullPreviewBtn.disabled = false;
-        bullPreviewBtn.onclick = () => window.open(videoUrl, "_blank");
-      } else {
-        bullPreviewBtn.disabled = true;
-        bullPreviewBtn.onclick = null;
-      }
-
-      const abbiId = (row[COLS.abbi] || "").toString().trim();
-      const abbiLink = buildABBILink(abbiId);
-      if (abbiLink) {
-        abbiLinkContainerEl.innerHTML =
-          'ABBI: <a href="' + abbiLink +
-          '" target="_blank" rel="noopener">' + abbiId + "</a>";
-      } else {
-        abbiLinkContainerEl.textContent = "ABBI: —";
-      }
-
-      contractorDisplayEl.textContent =
-        "Stock contractor: " + (row[COLS.contractor] || "—");
-
-      bullRecordDisplayEl.textContent =
-        "Record: " + (row[COLS.bullRecord] || "—");
-
-      const matchupUrl = buildMatchupLink(parsed.id, riderName);
-      matchupLinkEl.href = matchupUrl || "#";
     }
+
+    const abbiId = (row[COLS.abbi] || "").toString().trim();
+    const abbiLink = buildABBILink(abbiId);
+    if (abbiLink) {
+      abbiLinkContainerEl.innerHTML =
+        'ABBI: <a href="' + abbiLink +
+        '" target="_blank" rel="noopener">' + abbiId + "</a>";
+    } else {
+      abbiLinkContainerEl.textContent = "ABBI: —";
+    }
+
+    contractorDisplayEl.textContent =
+      "Stock contractor: " + (row[COLS.contractor] || "—");
+
+    bullRecordDisplayEl.textContent =
+      "Record: " + (row[COLS.bullRecord] || "—");
 
     eventMetaDisplayEl.textContent = "Event tag: " + event;
 
-    if (row.__isReride) {
-      setGauge(bullPowerGaugeEl, bullPowerValueEl, null, null, null, "—");
-    } else {
-      const bullPowerRaw = row[COLS.bullPower];
-      let bullPowerNum = null;
-      if (bullPowerRaw !== "-" && bullPowerRaw !== "" && bullPowerRaw != null) {
-        bullPowerNum = Number(bullPowerRaw);
-      }
-      const bullPowerFrac = bullPowerNum != null && !isNaN(bullPowerNum) ? bullPowerNum / 100 : null;
-      const bullPowerText = bullPowerNum != null && !isNaN(bullPowerNum) ? bullPowerNum.toFixed(1) : "—";
-      setGauge(bullPowerGaugeEl, bullPowerValueEl, bullPowerFrac, null, null, bullPowerText);
+    const bullPowerRaw = row[COLS.bullPower];
+    let bullPowerNum = null;
+    if (bullPowerRaw !== "-" && bullPowerRaw !== "" && bullPowerRaw != null) {
+      bullPowerNum = Number(bullPowerRaw);
     }
+    const bullPowerFrac = bullPowerNum != null && !isNaN(bullPowerNum)
+      ? bullPowerNum / 100
+      : null;
+    const bullPowerText = bullPowerNum != null && !isNaN(bullPowerNum)
+      ? bullPowerNum.toFixed(1)
+      : "—";
+    setGauge(
+      bullPowerGaugeEl,
+      bullPowerValueEl,
+      bullPowerFrac,
+      null,
+      null,
+      bullPowerText
+    );
 
     const rideProbRaw = (row[COLS.rideProb] || "").toString();
     let rideProb = null;
@@ -1634,17 +1559,28 @@
     const confMatch = rideProbRaw.match(/\((\d+)\)/);
     if (confMatch) confidence = confMatch[1];
 
-    const rideProbText = rideProb != null && !isNaN(rideProb) ? Math.round(rideProb * 100) + "%" : "—";
+    const rideProbText = rideProb != null && !isNaN(rideProb)
+      ? Math.round(rideProb * 100) + "%"
+      : "—";
     const rideProbFrac = rideProb != null && !isNaN(rideProb) ? rideProb : null;
-    setGauge(rideProbGaugeEl, rideProbValueEl, rideProbFrac, rideProbSubEl, confidence ? "Conf: " + confidence : "—", rideProbText);
+    setGauge(
+      rideProbGaugeEl,
+      rideProbValueEl,
+      rideProbFrac,
+      rideProbSubEl,
+      confidence ? "Conf: " + confidence : "—",
+      rideProbText
+    );
 
     const rawAdv = (row[COLS.advantage] || "").toString().trim();
+
     let advFraction = null;
     let advWho = "—";
     let advPercentValue = "—";
 
     if (rawAdv) {
       const lower = rawAdv.toLowerCase();
+
       if (lower.includes("even")) {
         advWho = "Even";
         advPercentValue = "50";
@@ -1658,6 +1594,7 @@
         if (side && numMatch) {
           const val = parseFloat(numMatch[1]);
           const pct = Math.max(0, Math.min(100, val));
+
           advWho = side;
           advPercentValue = pct.toFixed(1).replace(/\.0$/, "");
           advFraction = pct / 100;
@@ -1665,67 +1602,102 @@
       }
     }
 
-    setGauge(rideAdvGaugeEl, rideAdvValueEl, advFraction, rideAdvSubEl, advWho + (advPercentValue !== "—" ? " (" + advPercentValue + "%)" : ""), advPercentValue);
+    setGauge(
+      rideAdvGaugeEl,
+      rideAdvValueEl,
+      advFraction,
+      rideAdvSubEl,
+      advWho + (advPercentValue !== "—" ? " (" + advPercentValue + "%)" : ""),
+      advPercentValue
+    );
 
-    riderScoreDisplayEl.className = 'score-pill';
-    bullScoreDisplayEl.className = 'score-pill';
-    totalScoreDisplayEl.className = 'score-pill';
+    const sheetBullScore = row[COLS.bullScore];
+    const sheetRiderScore = row[COLS.riderScore];
+    const sheetTotalScore = row[COLS.totalScore];
 
-    if (state.reride) {
-      riderScoreDisplayEl.textContent = 'RR';
-      bullScoreDisplayEl.textContent = 'RR';
-      totalScoreDisplayEl.textContent = 'RR';
-      riderScoreDisplayEl.classList.add('reride');
-      bullScoreDisplayEl.classList.add('reride');
-      totalScoreDisplayEl.classList.add('reride');
-    } else {
-      riderScoreDisplayEl.textContent = !isNaN(state.riderNum) && state.riderNum > 0 ? state.riderNum.toFixed(2) : '—';
-      bullScoreDisplayEl.textContent = !isNaN(state.bullNum) && state.bullNum > 0 ? state.bullNum.toFixed(2) : '—';
-      totalScoreDisplayEl.textContent = !isNaN(state.totalNum) && state.totalNum > 50 ? state.totalNum.toFixed(2) : '—';
+    const isRRValue = value => {
+      return typeof value === "string" && value.trim().toLowerCase() === "rr";
+    };
+
+    const bullIsRR = isRRValue(sheetBullScore);
+    const riderIsRR = isRRValue(sheetRiderScore);
+    const totalIsRR = isRRValue(sheetTotalScore);
+
+    let bull = parseFloat(sheetBullScore);
+    let rider = parseFloat(sheetRiderScore);
+    let totalScore = parseFloat(sheetTotalScore);
+
+    if (!isNaN(bull) && !isNaN(rider) && isNaN(totalScore)) {
+      totalScore = bull + rider;
     }
 
-    resultPillEl.className = 'rider-meta-value';
-    if (state.reride) {
-      resultPillEl.textContent = 'Reride';
-      resultPillEl.classList.add('reride');
-    } else if (!isNaN(state.totalNum) && state.totalNum > 50) {
-      resultPillEl.textContent = 'Qualified ride';
-    } else if (state.isComingUp) {
-      resultPillEl.textContent = 'Coming Up';
-    } else if (!isNaN(state.riderNum) && state.riderNum === 0) {
-      resultPillEl.textContent = 'Buckoff / no score';
-    } else if (state.hasNumeric) {
-      resultPillEl.textContent = 'Buckoff / no score';
+    const rowStateClass = !isNaN(totalScore) && totalScore > 50
+      ? "good"
+      : (isNaN(rider) || rider === 0)
+      ? "bad"
+      : "neutral";
+
+    riderScoreDisplayEl.className = riderIsRR ? "score-pill rr" : "score-pill " + rowStateClass;
+    riderScoreDisplayEl.textContent = riderIsRR
+      ? sheetRiderScore.trim().toUpperCase()
+      : (!isNaN(rider) && rider > 0
+        ? rider.toFixed(2)
+        : "—");
+
+    bullScoreDisplayEl.className = bullIsRR ? "score-pill rr" : "score-pill " + rowStateClass;
+    bullScoreDisplayEl.textContent = bullIsRR
+      ? sheetBullScore.trim().toUpperCase()
+      : (!isNaN(bull) && bull > 0
+        ? bull.toFixed(2)
+        : "—");
+
+    totalScoreDisplayEl.className = totalIsRR ? "score-pill rr" : "score-pill " + rowStateClass;
+    totalScoreDisplayEl.textContent = totalIsRR
+      ? sheetTotalScore.trim().toUpperCase()
+      : (!isNaN(totalScore) && totalScore > 50
+        ? totalScore.toFixed(2)
+        : "—");
+
+    resultPillEl.className = "";
+    if (!isNaN(totalScore) && totalScore > 50) {
+      resultPillEl.textContent = "Qualified ride";
+    } else if (isNaN(rider) || rider === 0) {
+      resultPillEl.textContent = "Buckoff / no score";
     } else {
-      resultPillEl.textContent = 'Coming Up';
+      resultPillEl.textContent = "Unknown result";
     }
 
-    const sheetNoteHtml = (row[COLS.sheetNotes] || '').toString().trim();
+    const sheetNoteHtml = (row[COLS.sheetNotes] || "").toString().trim();
     if (sheetNoteHtml) {
       moreInfoBody.innerHTML = sheetNoteHtml;
+
       const meta = parseRiderMetaFromSheetNotes(sheetNoteHtml);
-      riderCareerLineEl.textContent = meta.career || '—';
-      riderSeasonLineEl.textContent = meta.season || '—';
-      riderPointsLineEl.textContent = meta.points || '—';
-      riderEarningsLineEl.textContent = meta.earnings || '—';
-      riderPotentialLineEl.textContent = meta.potential || '—';
-      bullNoteLineEl.textContent = row.__isReride ? 'Reride bull not assigned yet' : (meta.bullStats || '—');
+      riderCareerLineEl.textContent = meta.career || "—";
+      riderSeasonLineEl.textContent = meta.season || "—";
+      riderPointsLineEl.textContent = meta.points || "—";
+      riderEarningsLineEl.textContent = meta.earnings || "—";
+      riderPotentialLineEl.textContent = meta.potential || "—";
+      bullNoteLineEl.textContent = meta.bullStats || "—";
     } else {
-      moreInfoBody.textContent = 'No additional info for this ride.';
-      riderCareerLineEl.textContent = '—';
-      riderSeasonLineEl.textContent = '—';
-      riderPointsLineEl.textContent = '—';
-      riderEarningsLineEl.textContent = '—';
-      riderPotentialLineEl.textContent = '—';
-      bullNoteLineEl.textContent = row.__isReride ? 'Reride bull not assigned yet' : '—';
+      moreInfoBody.textContent = "No additional info for this ride.";
+      riderCareerLineEl.textContent = "—";
+      riderSeasonLineEl.textContent = "—";
+      riderPointsLineEl.textContent = "—";
+      riderEarningsLineEl.textContent = "—";
+      riderPotentialLineEl.textContent = "—";
+      bullNoteLineEl.textContent = "—";
     }
 
     const handInfo = {
-      hand: row['Riding Hand'] || null,
-      direction: row.__isReride ? null : (row['Bull Direction'] || null)
+      hand: row["Riding Hand"] || null,
+      direction: row["Bull Direction"] || null
     };
     renderHandAndBullIcons(handInfo);
     renderPickPill(row);
+
+    const matchupUrl = buildMatchupLink(parsed.id, riderName);
+    matchupLinkEl.href = matchupUrl || "#";
+
     updateProgressHighlight();
   }
 
@@ -1737,9 +1709,7 @@
       return;
     }
 
-    const standardRows = rides.filter(row => !row.__isReride);
-
-    const probItems = standardRows.map((row, idx) => {
+    const probItems = rides.map((row, idx) => {
       const rideProbRaw = (row[COLS.rideProb] || "").toString();
       const m = rideProbRaw.match(/([0-9.]+)/);
       const val = m ? parseFloat(m[1]) : NaN;
@@ -1762,7 +1732,7 @@
         <span class="list-meta">${pct}%</span>
       `;
       btn.addEventListener("click", () => {
-        const realIndex = rides.findIndex(r => getRideKey(r) === getRideKey(row));
+        const realIndex = rides.indexOf(row);
         if (realIndex >= 0) {
           currentIndex = realIndex;
           renderCurrentRide();
@@ -1771,7 +1741,7 @@
       topRideProbListEl.appendChild(btn);
     });
 
-    const bullItems = standardRows.map((row, idx) => {
+    const bullItems = rides.map((row, idx) => {
       const raw = row[COLS.bullPower];
       let val = NaN;
       if (raw !== "-" && raw !== "" && raw != null) val = parseFloat(raw);
@@ -1788,11 +1758,11 @@
       const btn = document.createElement("button");
       btn.className = "list-item-btn";
       btn.innerHTML = `
-        <span class="list-main">${row[COLS.number] || idx+1}. ${row[COLS.rider] || ""} vs ${parsed.name || fullBullName}</span>
+        <span class="list-main">${row[COLS.number] || idx+1}. ${parsed.name || fullBullName}</span>
         <span class="list-meta">${val.toFixed(1)}</span>
       `;
       btn.addEventListener("click", () => {
-        const realIndex = rides.findIndex(r => getRideKey(r) === getRideKey(row));
+        const realIndex = rides.indexOf(row);
         if (realIndex >= 0) {
           currentIndex = realIndex;
           renderCurrentRide();
@@ -1801,30 +1771,64 @@
       topBullPowerListEl.appendChild(btn);
     });
 
-    const qualified = rides.map(row => ({ row, state: getScoreStateForRow(row) }))
-      .filter(item => !isNaN(item.state.totalNum) && item.state.totalNum > 50)
-      .sort((a, b) => b.state.totalNum - a.state.totalNum);
+    const qualified = [];
+    for (const row of rides) {
+      const key = getRideKey(row);
+      const s = scoreData[key];
+
+      const bullScoreCell = row[COLS.bullScore];
+      const riderScoreCell = row[COLS.riderScore];
+      const totalCell = row[COLS.totalScore];
+
+      let bull = parseFloat(s && s.bullScore !== undefined && s.bullScore !== "" ? s.bullScore : bullScoreCell);
+      let rider = parseFloat(s && s.riderScore !== undefined && s.riderScore !== "" ? s.riderScore : riderScoreCell);
+      let total = parseFloat(s && s.total !== undefined && s.total !== "" ? s.total : totalCell);
+
+      if (!isNaN(bull) && !isNaN(rider) && isNaN(total)) {
+        total = bull + rider;
+      }
+
+      if (isNaN(total) || total <= 50) continue;
+
+      qualified.push({ row, total });
+    }
+
+    qualified.sort((a,b) => b.total - a.total);
 
     qualifiedRidesListEl.innerHTML = "";
-    qualified.forEach(item => {
-      const { row, state } = item;
+    qualified.forEach((item, index) => {
+      const { row, total } = item;
+      const fullBullName = row[COLS.bullName] || "";
+      const parsed = parseBullName(fullBullName);
       const riderName = row[COLS.rider] || "";
-      const bullLabel = row.__isReride ? 'Reride Bull' : (parseBullName(row[COLS.bullName] || "").name || row[COLS.bullName] || "");
+
+      const placeNumber = index + 1;
+      const placeSuffix =
+        placeNumber % 10 === 1 && placeNumber % 100 !== 11 ? "st" :
+        placeNumber % 10 === 2 && placeNumber % 100 !== 12 ? "nd" :
+        placeNumber % 10 === 3 && placeNumber % 100 !== 13 ? "rd" : "th";
+      const placeLabel = placeNumber + placeSuffix;
+
       const btn = document.createElement("button");
       btn.className = "list-item-btn";
       btn.innerHTML = `
-        <span class="list-main">${riderName} vs ${bullLabel}</span>
-        <span class="list-meta">${state.totalNum.toFixed(2)}</span>
+        <span class="list-main">${placeLabel}: ${riderName} on ${parsed.name || fullBullName}</span>
+        <span class="list-meta">${total.toFixed(2)}</span>
       `;
       btn.addEventListener("click", () => {
-        const realIndex = rides.findIndex(r => getRideKey(r) === getRideKey(row));
-        if (realIndex >= 0) {
-          currentIndex = realIndex;
+        const idx = rides.indexOf(row);
+        if (idx >= 0) {
+          currentIndex = idx;
           renderCurrentRide();
         }
       });
       qualifiedRidesListEl.appendChild(btn);
     });
+
+    if (!qualified.length) {
+      qualifiedRidesListEl.innerHTML =
+        '<div class="list-meta">No qualified rides yet (50+ total).</div>';
+    }
   }
 
   prevBtn.addEventListener("click", () => {
