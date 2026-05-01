@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RankRatings | Results</title>
+  <style>
+    :root {
+      --pbr-red: #c8102e;
+      --pbr-dark: #111111;
+      --pbr-gray: #1e1e1e;
+      --pbr-light-gray: #cccccc;
+      --pbr-accent: #00b050;
+      --card-bg: #181818;
+      --seg-bg: #202020;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle 400px at top, #333 0, #000 55%);
+      color: #f5f5f5;
+    }
+
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 20px 32px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+      gap: 16px;
+    }
+
+    .branding { display: flex; flex-direction: column; gap: 4px; }
+    .branding-title { font-size: 28px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .branding-sub { font-size: 12px; color: #aaaaaa; }
+
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .status-text { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .btn {
+      border: none; border-radius: 4px; padding: 10px 18px;
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; cursor: pointer; background: var(--pbr-red);
+      color: #fff; text-decoration: none; display: inline-flex;
+      align-items: center; justify-content: center;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    .btn:hover { background: #e11434; transform: translateY(-1px); }
+
+    .card {
+      background: linear-gradient(145deg, #141414, #1e1e1e);
+      border-radius: 10px; padding: 20px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.65);
+      border: 1px solid #2a2a2a; margin-bottom: 18px;
+    }
+
+    .card-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 16px;
+      gap: 12px; flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 13px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.12em; color: #bbbbbb;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .hero-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid #292929; border-radius: 12px;
+      padding: 18px; display: flex; flex-direction: column; gap: 4px;
+    }
+
+    .hero-stat-row {
+      display: flex; justify-content: space-between;
+      gap: 8px; color: #ccc; font-size: 12px;
+    }
+    .hero-stat-label { color: #999; }
+    .hero-stat-value { color: #fff; font-weight: 600; }
+
+    .table-wrap { overflow-x: auto; margin-top: 12px; }
+
+    .results-table {
+      width: 100%; border-collapse: collapse;
+      min-width: 600px; font-size: 13px;
+    }
+
+    .results-table th, .results-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #2a2a2a;
+      text-align: left; white-space: nowrap;
+    }
+
+    .results-table th {
+      color: #aaa; font-weight: 600;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    .results-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+    .results-table td.num { text-align: right; }
+    .results-table td.rider-name { color: #fff; font-weight: 600; }
+
+    .round-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .placeholder { color: #777; font-size: 13px; }
+
+    .score-badge {
+      display: inline-block;
+      background: rgba(200,16,46,0.15);
+      border: 1px solid rgba(200,16,46,0.3);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .no-score { color: #555; font-style: italic; }
+
+    @media (max-width: 900px) {
+      .hero-grid, .round-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <header>
+      <div class="branding">
+        <div class="branding-title">RankRatings</div>
+        <div class="branding-sub" id="eventSubtitle">Results</div>
+      </div>
+      <div class="controls">
+        <div id="dataStatus" class="status-text">Loading…</div>
+        <a class="btn" href="index.html">← Home</a>
+        <a class="btn" href="board_2.0.html">Live Dashboard</a>
+      </div>
+    </header>
+
+    <!-- TOP 3 PODIUM -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title" id="eventTitle">Latest Event Results</div>
+          <div id="eventMeta" style="font-size:12px; color:#888; margin-top:4px;">Loading…</div>
+        </div>
+      </div>
+      <div class="hero-grid">
+
+        <div class="hero-card">
+          <span style="font-size:13px; color:#ffd700; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;">🏆 1st Place</span>
+          <strong id="pod1Name" style="font-size:22px; font-weight:700; color:#fff; margin:4px 0;">—</strong>
+          <div style="font-size:11px; color:#888; margin-top:4px;">Agg Score</div>
+          <div id="pod1Score" style="font-size:18px; font-weight:600; color:#fff; margin-bottom:10px;">—</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 1</div>
+              <div id="pod1R1" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 2</div>
+              <div id="pod1R2" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Champ</div>
+              <div id="pod1CR" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+          </div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Earnings</span><span class="hero-stat-value" id="pod1Earnings">—</span></div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Total Pts</span><span class="hero-stat-value" id="pod1Pts">—</span></div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Ride %</span><span class="hero-stat-value" id="pod1RidePct">—</span></div>
+        </div>
+
+        <div class="hero-card">
+          <span style="font-size:13px; color:#aaa; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;">🥈 2nd Place</span>
+          <strong id="pod2Name" style="font-size:22px; font-weight:700; color:#fff; margin:4px 0;">—</strong>
+          <div style="font-size:11px; color:#888; margin-top:4px;">Agg Score</div>
+          <div id="pod2Score" style="font-size:18px; font-weight:600; color:#fff; margin-bottom:10px;">—</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 1</div>
+              <div id="pod2R1" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 2</div>
+              <div id="pod2R2" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Champ</div>
+              <div id="pod2CR" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+          </div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Earnings</span><span class="hero-stat-value" id="pod2Earnings">—</span></div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Total Pts</span><span class="hero-stat-value" id="pod2Pts">—</span></div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Ride %</span><span class="hero-stat-value" id="pod2RidePct">—</span></div>
+        </div>
+
+        <div class="hero-card">
+          <span style="font-size:13px; color:#cd7f32; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;">🥉 3rd Place</span>
+          <strong id="pod3Name" style="font-size:22px; font-weight:700; color:#fff; margin:4px 0;">—</strong>
+          <div style="font-size:11px; color:#888; margin-top:4px;">Agg Score</div>
+          <div id="pod3Score" style="font-size:18px; font-weight:600; color:#fff; margin-bottom:10px;">—</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 1</div>
+              <div id="pod3R1" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 2</div>
+              <div id="pod3R2" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Champ</div>
+              <div id="pod3CR" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+          </div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Earnings</span><span class="hero-stat-value" id="pod3Earnings">—</span></div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Total Pts</span><span class="hero-stat-value" id="pod3Pts">—</span></div>
+          <div class="hero-stat-row"><span class="hero-stat-label">Ride %</span><span class="hero-stat-value" id="pod3RidePct">—</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FULL AGGREGATE LEADERBOARD -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Full Leaderboard</div>
+      </div>
+      <div class="table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Place</th>
+              <th>Rider</th>
+              <th class="num">Agg Score</th>
+              <th class="num">Round 1</th>
+              <th class="num">Round 2</th>
+              <th class="num">Champ Round</th>
+              <th class="num">Earnings</th>
+              <th class="num">Total Pts</th>
+              <th class="num">Ride %</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <tr><td colspan="9" class="placeholder">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ROUND TABLES -->
+    <div class="round-grid">
+
+      <!-- ROUND 1 -->
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+          <div class="card-title">Round 1</div>
+        </div>
+        <div class="table-wrap">
+          <table class="results-table" style="min-width:260px;">
+            <thead>
+              <tr>
+                <th>Rider</th>
+                <th class="num">Score</th>
+              </tr>
+            </thead>
+            <tbody id="round1Body">
+              <tr><td colspan="2" class="placeholder">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ROUND 2 -->
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+          <div class="card-title">Round 2</div>
+        </div>
+        <div class="table-wrap">
+          <table class="results-table" style="min-width:260px;">
+            <thead>
+              <tr>
+                <th>Rider</th>
+                <th class="num">Score</th>
+              </tr>
+            </thead>
+            <tbody id="round2Body">
+              <tr><td colspan="2" class="placeholder">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CHAMPIONSHIP ROUND -->
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+          <div class="card-title">Championship Round</div>
+        </div>
+        <div class="table-wrap">
+          <table class="results-table" style="min-width:260px;">
+            <thead>
+              <tr>
+                <th>Rider</th>
+                <th class="num">Score</th>
+              </tr>
+            </thead>
+            <tbody id="champBody">
+              <tr><td colspan="2" class="placeholder">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const RESULTS_SHEET_ID = "1lPsbfatiicViv0CqiAL_bsJy3UrmEhygUaGJn3y9P2M";
+
+    function fmt(val, decimals = 2) {
+      const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ""));
+      return isFinite(n) ? n.toFixed(decimals) : "—";
+    }
+
+    function fmtEarnings(val) {
+      const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ""));
+      return isFinite(n) ? "$" + n.toLocaleString() : (val || "—");
+    }
+
+    function fmtPct(val) {
+      const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ""));
+      if (!isFinite(n)) return "—";
+      // stored as decimal (1 = 100%) or already as percent
+      return n <= 1 ? (n * 100).toFixed(0) + "%" : n.toFixed(0) + "%";
+    }
+
+    function cleanName(name) {
+      return String(name || "").replace(/^PBR Default Image/i, "").trim();
+    }
+
+    function setPodium(i, row) {
+      document.getElementById(`pod${i}Name`).textContent     = row ? cleanName(row["Rider"]) : "—";
+      document.getElementById(`pod${i}Score`).textContent    = row ? fmt(row["Agg Score"]) : "—";
+      document.getElementById(`pod${i}R1`).textContent       = row ? fmt(row["Round 1"]) : "—";
+      document.getElementById(`pod${i}R2`).textContent       = row ? fmt(row["Round 2"]) : "—";
+      document.getElementById(`pod${i}CR`).textContent       = row ? fmt(row["Championship Round"]) : "—";
+      document.getElementById(`pod${i}Earnings`).textContent = row ? fmtEarnings(row["Earnings"]) : "—";
+      document.getElementById(`pod${i}Pts`).textContent      = row ? fmt(row["Total Points"], 0) : "—";
+      document.getElementById(`pod${i}RidePct`).textContent  = row ? fmtPct(row["Ride Percentage %"]) : "—";
+    }
+
+    function renderRoundTable(bodyId, rows, col) {
+      const sorted = [...rows]
+        .filter(r => r[col] && parseFloat(r[col]) > 0)
+        .sort((a, b) => parseFloat(b[col]) - parseFloat(a[col]));
+
+      const el = document.getElementById(bodyId);
+      if (!sorted.length) {
+        el.innerHTML = `<tr><td colspan="2" class="placeholder no-score">No scores recorded</td></tr>`;
+        return;
+      }
+      el.innerHTML = sorted.map((r, i) => `
+        <tr>
+          <td class="rider-name">${cleanName(r["Rider"])}</td>
+          <td class="num"><span class="score-badge">${fmt(r[col])}</span></td>
+        </tr>`).join("");
+    }
+
+    async function loadResults() {
+      try {
+        const url  = `https://docs.google.com/spreadsheets/d/${RESULTS_SHEET_ID}/gviz/tq?tqx=out:json&headers=1&_=${Date.now()}`;
+        const res  = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const text = await res.text();
+        const json = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
+        const data = JSON.parse(json);
+
+        const cols = data.table.cols.map(c => c.label || c.id);
+        const rows = data.table.rows.map(r => {
+          const obj = {};
+          r.c.forEach((cell, i) => {
+            obj[cols[i]] = (cell && cell.v != null) ? cell.v : "";
+          });
+          return obj;
+        }).filter(r => r["Rider"]);
+
+        document.getElementById("dataStatus").textContent = `${rows.length} riders`;
+        document.getElementById("eventMeta").textContent  = `${rows.length} riders · latest event`;
+
+        // Podium
+        setPodium(1, rows[0] || null);
+        setPodium(2, rows[1] || null);
+        setPodium(3, rows[2] || null);
+
+        // Full leaderboard
+        document.getElementById("leaderboardBody").innerHTML = rows.map(r => `
+          <tr>
+            <td class="num">${r["Place"] || "—"}</td>
+            <td class="rider-name">${cleanName(r["Rider"])}</td>
+            <td class="num">${fmt(r["Agg Score"])}</td>
+            <td class="num">${fmt(r["Round 1"])}</td>
+            <td class="num">${fmt(r["Round 2"])}</td>
+            <td class="num">${fmt(r["Championship Round"])}</td>
+            <td class="num">${fmtEarnings(r["Earnings"])}</td>
+            <td class="num">${fmt(r["Total Points"], 0)}</td>
+            <td class="num">${fmtPct(r["Ride Percentage %"])}</td>
+          </tr>`).join("");
+
+        // Round tables
+        renderRoundTable("round1Body", rows, "Round 1");
+        renderRoundTable("round2Body", rows, "Round 2");
+        renderRoundTable("champBody",  rows, "Championship Round");
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("dataStatus").textContent = "Error loading results";
+      }
+    }
+
+    loadResults();
+  </script>
+</body>
+</html>

@@ -312,6 +312,96 @@
       </div>
     </header>
 
+    <!-- EVENT RESULTS CARD -->
+    <div class="card" id="eventResultsCard">
+      <div class="card-header">
+        <div>
+          <div class="card-title" id="eventResultsTitle">Latest Event Results</div>
+          <div id="eventResultsMeta" style="font-size:12px; color:#888; margin-top:4px;">Loading…</div>
+        </div>
+        <a id="eventResultsLink" href="#" class="btn">See Full Results</a>
+      </div>
+
+      <!-- Top 3 podium -->
+      <div class="hero-grid">
+        <div class="hero-card" id="eventPod1">
+          <span class="label" style="color:#ffd700; font-size:13px;">🏆 1st Place</span>
+          <strong id="eventPod1Name" style="font-size:22px; font-weight:700; color:#fff; margin: 4px 0;">—</strong>
+          <div style="font-size:11px; color:#888; margin-top:6px;">Agg Score</div>
+          <div id="eventPod1Score" style="font-size:18px; font-weight:600; color:#fff; line-height:1.1; margin-bottom:10px;">—</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 1</div>
+              <div id="eventPod1R1" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 2</div>
+              <div id="eventPod1R2" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Champ</div>
+              <div id="eventPod1CR" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat-row"><span class="hero-stat-label">Earnings</span><span class="hero-stat-value" id="eventPod1Earnings">—</span></div>
+            <div class="hero-stat-row"><span class="hero-stat-label">Total Pts</span><span class="hero-stat-value" id="eventPod1Pts">—</span></div>
+            <div class="hero-stat-row"><span class="hero-stat-label">Ride %</span><span class="hero-stat-value" id="eventPod1RidePct">—</span></div>
+          </div>
+        </div>
+        <div class="hero-card" id="eventPod2">
+          <span class="label" style="color:#aaa; font-size:13px;">🥈 2nd Place</span>
+          <strong id="eventPod2Name" style="font-size:22px; font-weight:700; color:#fff; margin: 4px 0;">—</strong>
+          <div style="font-size:11px; color:#888; margin-top:6px;">Agg Score</div>
+          <div id="eventPod2Score" style="font-size:18px; font-weight:600; color:#fff; line-height:1.1; margin-bottom:10px;">—</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 1</div>
+              <div id="eventPod2R1" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 2</div>
+              <div id="eventPod2R2" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Champ</div>
+              <div id="eventPod2CR" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat-row"><span class="hero-stat-label">Earnings</span><span class="hero-stat-value" id="eventPod2Earnings">—</span></div>
+            <div class="hero-stat-row"><span class="hero-stat-label">Total Pts</span><span class="hero-stat-value" id="eventPod2Pts">—</span></div>
+            <div class="hero-stat-row"><span class="hero-stat-label">Ride %</span><span class="hero-stat-value" id="eventPod2RidePct">—</span></div>
+          </div>
+        </div>
+        <div class="hero-card" id="eventPod3">
+          <span class="label" style="color:#cd7f32; font-size:13px;">🥉 3rd Place</span>
+          <strong id="eventPod3Name" style="font-size:22px; font-weight:700; color:#fff; margin: 4px 0;">—</strong>
+          <div style="font-size:11px; color:#888; margin-top:6px;">Agg Score</div>
+          <div id="eventPod3Score" style="font-size:18px; font-weight:600; color:#fff; line-height:1.1; margin-bottom:10px;">—</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 1</div>
+              <div id="eventPod3R1" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Round 2</div>
+              <div id="eventPod3R2" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+            <div style="background:#1e1e1e; border:1px solid #333; border-radius:4px; padding:6px 4px; text-align:center;">
+              <div style="font-size:10px; color:#888;">Champ</div>
+              <div id="eventPod3CR" style="font-size:14px; color:#fff; font-weight:600;">—</div>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat-row"><span class="hero-stat-label">Earnings</span><span class="hero-stat-value" id="eventPod3Earnings">—</span></div>
+            <div class="hero-stat-row"><span class="hero-stat-label">Total Pts</span><span class="hero-stat-value" id="eventPod3Pts">—</span></div>
+            <div class="hero-stat-row"><span class="hero-stat-label">Ride %</span><span class="hero-stat-value" id="eventPod3RidePct">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <div class="card-title">Top 3 riders</div>
@@ -392,8 +482,9 @@
 
   <script>
     // ─── GOOGLE SHEETS CONFIG ─────────────────────────────────────────────────
-    const SHEET_ID   = "1A0JAei8bu2CiM52z4sOl631H5YmWfEwh-XvuFYYHzWE";
-    const SHEET_NAME = "Rider Standing"; // must match the tab name in your Google Sheet
+    const SHEET_ID        = "1A0JAei8bu2CiM52z4sOl631H5YmWfEwh-XvuFYYHzWE";
+    const SHEET_NAME      = "Rider Standing";
+    const RESULTS_SHEET_ID = "1lPsbfatiicViv0CqiAL_bsJy3UrmEhygUaGJn3y9P2M"; // event results sheet
     // ─────────────────────────────────────────────────────────────────────────
 
     const dataStatusEl = document.getElementById("dataStatus");
@@ -579,6 +670,69 @@
         </tr>`).join("");
     }
 
+    // ── EVENT RESULTS ────────────────────────────────────────────────────────
+    function setPodium(idx, row) {
+      const name    = row ? normalizeRiderName(row["Rider"] || "") : "—";
+      const score   = row ? parseFloatOrNaN(row["Agg Score"]) : NaN;
+      const r1      = row ? parseFloatOrNaN(row["Round 1"]) : NaN;
+      const r2      = row ? parseFloatOrNaN(row["Round 2"]) : NaN;
+      const cr      = row ? parseFloatOrNaN(row["Championship Round"]) : NaN;
+      const pts     = row ? parseFloatOrNaN(row["Total Points"]) : NaN;
+      const ridePct = row ? parseFloatOrNaN(row["Ride Percentage %"]) : NaN;
+      const earn    = row ? normalizeText(row["Earnings"]) : "—";
+
+      document.getElementById(`eventPod${idx}Name`).textContent    = name;
+      document.getElementById(`eventPod${idx}Score`).textContent   = !isNaN(score) ? score.toFixed(2) : "—";
+      document.getElementById(`eventPod${idx}R1`).textContent      = !isNaN(r1) ? r1.toFixed(2) : "—";
+      document.getElementById(`eventPod${idx}R2`).textContent      = !isNaN(r2) ? r2.toFixed(2) : "—";
+      document.getElementById(`eventPod${idx}CR`).textContent      = !isNaN(cr) ? cr.toFixed(2) : "—";
+      document.getElementById(`eventPod${idx}Pts`).textContent     = !isNaN(pts) ? pts.toFixed(0) : "—";
+      document.getElementById(`eventPod${idx}RidePct`).textContent = !isNaN(ridePct) ? `${(ridePct * 100).toFixed(0)}%` : "—";
+
+      // Format earnings
+      let earnText = earn;
+      if (earnText && earnText !== "—") {
+        const num = parseFloat(earnText.toString().replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(num)) earnText = "$" + num.toLocaleString();
+      }
+      document.getElementById(`eventPod${idx}Earnings`).textContent = earnText || "—";
+    }
+
+    async function loadEventResults() {
+      try {
+        const url  = `https://docs.google.com/spreadsheets/d/${RESULTS_SHEET_ID}/gviz/tq?tqx=out:json&headers=1&_=${Date.now()}`;
+        const res  = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const text = await res.text();
+        const json = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
+        const data = JSON.parse(json);
+
+        // Columns come through labeled correctly for this sheet
+        const cols = data.table.cols.map(c => c.label || c.id);
+        const rows = data.table.rows.map(r => {
+          const obj = {};
+          r.c.forEach((cell, i) => {
+            obj[cols[i]] = (cell && cell.v != null) ? cell.v : "";
+          });
+          return obj;
+        }).filter(r => r["Rider"]);
+
+        // Use the tab name as event title if available
+        const tabLabel = data.table.cols[0]?.label;
+        document.getElementById("eventResultsTitle").textContent = "Latest Event Results";
+        document.getElementById("eventResultsMeta").textContent  = `${rows.length} riders finished`;
+
+        setPodium(1, rows[0] || null);
+        setPodium(2, rows[1] || null);
+        setPodium(3, rows[2] || null);
+
+      } catch (err) {
+        console.error("Event results error:", err);
+        document.getElementById("eventResultsMeta").textContent = "Could not load event results — make sure the sheet is public.";
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     async function loadLandingWorkbook() {
       try {
         dataStatusEl.textContent = "Loading rider standings…";
@@ -615,6 +769,7 @@
     }
 
     loadLandingWorkbook();
+    loadEventResults();
   </script>
 </body>
 </html>
