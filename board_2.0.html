@@ -952,10 +952,12 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-  let workbook = null;
-  let currentSheetName = null;
+  // ─── GOOGLE SHEETS CONFIG ──────────────────────────────────────────────────
+  const SHEET_ID = "1HzDOkBzVnO2h3VdId02IwP_iSc0Nh_XpHIbkdxXKxZU";
+  // No tab name needed — always pulls the leftmost tab automatically
+  // ──────────────────────────────────────────────────────────────────────────
+
   let rides = [];
   let currentIndex = 0;
   const scoreData = {};
@@ -1103,35 +1105,44 @@
   async function loadDefaultWorkbook() {
     try {
       dataStatusEl.textContent = "Loading latest sheet…";
-      const res = await fetch("data/pbr_matchups_full-2.xlsx?_=" + Date.now());
-      if (!res.ok) {
-        throw new Error("HTTP " + res.status);
-      }
-      const buf = await res.arrayBuffer();
-      workbook = XLSX.read(buf, { type: "array" });
 
-      const sheetNames = workbook.SheetNames || [];
-      if (!sheetNames.length) {
-        throw new Error("No sheets found");
-      }
-      currentSheetName = sheetNames[0];
-      loadSheet(currentSheetName);
+      // headers=1 tells Google to treat row 1 as column headers
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&_=${Date.now()}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("HTTP " + response.status);
 
-      dataStatusEl.textContent = "Live sheet: " + currentSheetName;
+      // Google wraps the JSON in a callback — strip it to get pure JSON
+      const text = await response.text();
+      const jsonText = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
+      const data = JSON.parse(jsonText);
+
+      // Convert Google's table format into plain row objects keyed by column header
+      // gviz API doesn't return labels, so we hardcode the column order
+      // (must match the exact column order in your Google Sheet)
+      const cols = [
+        "Number", "Bull Power", "Bull Record", "Bull Name", "ABBI",
+        "Stock Contractor", "Event", "Section", "Ride Probability (confidence",
+        "Link to matchup", "Riding Hand", "Advantage", "Bull Direction",
+        "Notes", "Bull Rider", "Bull Score", "Rider Score", "Total",
+        "Post Ride Notes", "Pick"
+      ];
+
+      rides = data.table.rows.map(r => {
+        const obj = {};
+        r.c.forEach((cell, i) => {
+          obj[cols[i]] = (cell && cell.v != null) ? cell.v : "";
+        });
+        return obj;
+      });
+
+      onRidesLoaded();
+      dataStatusEl.textContent = "Live sheet loaded (" + rides.length + " rides)";
       reloadBtn.style.display = "inline-block";
     } catch (err) {
       console.error(err);
-      dataStatusEl.textContent = "Error loading sheet. Check data/pbr_matchups_full.xlsx";
+      dataStatusEl.textContent = "Error loading sheet. Make sure the Google Sheet is public.";
       navInfoEl.textContent = "Could not load data.";
     }
-  }
-
-  function loadSheet(name) {
-    if (!workbook || !workbook.SheetNames.includes(name)) return;
-    const ws = workbook.Sheets[name];
-    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
-    rides = json;
-    onRidesLoaded();
   }
 
   function seedScoreDataFromSheet() {

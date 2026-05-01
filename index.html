@@ -390,10 +390,11 @@
 
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    const WORKBOOK_URL = "data/Standings_and_event_data.xlsx";
-    const SHEET_NAME = "Rider Standing";
+    // ─── GOOGLE SHEETS CONFIG ─────────────────────────────────────────────────
+    const SHEET_ID   = "1A0JAei8bu2CiM52z4sOl631H5YmWfEwh-XvuFYYHzWE";
+    const SHEET_NAME = "Rider Standing"; // must match the tab name in your Google Sheet
+    // ─────────────────────────────────────────────────────────────────────────
 
     const dataStatusEl = document.getElementById("dataStatus");
     const standingsShowAllButton = document.getElementById("standingsShowAllButton");
@@ -580,20 +581,33 @@
 
     async function loadLandingWorkbook() {
       try {
-        dataStatusEl.textContent = "Loading rider standings workbook…";
-        const response = await fetch(`${WORKBOOK_URL}?_=${Date.now()}`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const buffer = await response.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: "array" });
-        const sheetName = workbook.SheetNames.find(name => name.toLowerCase() === SHEET_NAME.toLowerCase()) || workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        dataStatusEl.textContent = "Loading rider standings…";
+
+        // Fetch data from Google Sheets via the public JSON export API
+        const encodedSheet = encodeURIComponent(SHEET_NAME);
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodedSheet}&_=${Date.now()}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        // Google wraps the JSON in a callback — strip it to get pure JSON
+        const text = await response.text();
+        const jsonText = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
+        const data = JSON.parse(jsonText);
+
+        // Convert Google's table format into plain row objects keyed by column header
+        const cols = data.table.cols.map(c => c.label || c.id);
+        const rows = data.table.rows.map(r => {
+          const obj = {};
+          r.c.forEach((cell, i) => {
+            obj[cols[i]] = (cell && cell.v != null) ? cell.v : "";
+          });
+          return obj;
+        });
+
         updateLandingPage(rows);
       } catch (error) {
         console.error(error);
-        dataStatusEl.textContent = "Unable to load rider standings workbook.";
+        dataStatusEl.textContent = "Unable to load rider standings. Make sure the sheet is public.";
         setTopCard(1, null);
         setTopCard(2, null);
         setTopCard(3, null);
